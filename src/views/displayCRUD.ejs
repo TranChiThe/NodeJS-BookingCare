@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>User list infomation</title>
     <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
 
@@ -20,6 +20,9 @@
 <body>
     <div class="container">
         <h2>User List</h2>
+        <form action="/crud" method="get" class="">
+            <button type="" class="btn btn-primary">Add User</button>
+        </form>
         <table class="table table-hover">
             <thead>
                 <tr>
@@ -30,6 +33,7 @@
                     <th>Phone Number</th>
                     <th>Gender</th>
                     <th>Role</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -55,6 +59,14 @@
                         </td>
                         <td>
                             <%=dataTable[i].roleId %>
+                        </td>
+                        <td>
+                            <a href="/edit-crud?id=<%=dataTable[i].id %>">
+                                <button type="button" class="btn btn-primary btn-sm">Edit</button>
+                            </a>
+                            <a href="/delete-crud?id=<%=dataTable[i].id %>">
+                                <button type="button" class="btn btn-danger btn-sm">Delete</button>
+                            </a>
                         </td>
                     </tr>
                     <% } %>
