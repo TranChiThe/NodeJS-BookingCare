@@ -11,7 +11,7 @@ let handleUserLogin = (email, password) => {
             let isExist = await checkUserEmail(email);
             if (isExist) {
                 let user = await db.User.findOne({
-                    attributes: ['email', 'roleId', 'password'],
+                    attributes: ['email', 'roleId', 'password', 'firstName', 'lastName'],
                     where: { email: email },
                     raw: true
                 });
@@ -37,6 +37,7 @@ let handleUserLogin = (email, password) => {
                 userData.errMessage = `Your's Email isn't exist in your system. Plz try other email!`;
             }
             resolve(userData)
+            console.log('check user data: ', userData);
         } catch (e) {
             return reject(e);
         }
@@ -112,14 +113,13 @@ let createNewUser = (data) => {
                 await db.User.create({
                     email: data.email,
                     password: hashPasswordFromBcrypt,
-                    firstName: data.firstname,
-                    lastName: data.lastname,
+                    firstName: data.firstName,
+                    lastName: data.lastName,
                     address: data.address,
-                    phoneNumber: data.phonenumber,
-                    gender: data.gender === '1' ? true : false,
-                    // image: DataTypes.STRING,
-                    roleId: data.role,
-                    // positionId: DataTypes.STRING,
+                    phoneNumber: data.phoneNumber,
+                    gender: data.gender,
+                    roleId: data.roleId,
+                    positionId: data.positionId
                 })
                 resolve({
                     errCode: 0,
@@ -178,11 +178,6 @@ let updateUser = (data) => {
                 user.address = data.address;
 
                 await user.save();
-                // await db.User.save({
-                //     firstName: data.firstname,
-                //     lastName: data.lastname,
-                //     address: data.address,
-                // })
                 resolve({
                     errCode: 0,
                     errMessage: `Update the user succeds!`
@@ -200,10 +195,33 @@ let updateUser = (data) => {
     })
 }
 
+let getAllCodeService = (typeInput) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!typeInput) {
+                resolve({
+                    errCode: 0,
+                    data: 'Missing parameter!'
+                })
+            } else {
+                let res = {}
+                let allcode = await db.Allcode.findAll({
+                    where: { type: typeInput }
+                });
+                resolve(res);
+                res.errCode = 0;
+                res.data = allcode;
+            }
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
 module.exports = {
     handleUserLogin: handleUserLogin,
     getAllUser: getAllUser,
     createNewUser: createNewUser,
     deleteUser: deleteUser,
     updateUser: updateUser,
+    getAllCodeService: getAllCodeService
 }

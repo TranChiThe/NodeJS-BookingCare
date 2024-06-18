@@ -12,7 +12,11 @@ module.exports = {
                 type: Sequelize.INTEGER
             },
             docterId: {
-                type: Sequelize.INTEGER
+                type: Sequelize.INTEGER,
+                // references: {
+                //     model: Trainer,
+                //     key: 'id',
+                // },
             },
             description: {
                 type: Sequelize.TEXT

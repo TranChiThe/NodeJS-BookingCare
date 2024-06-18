@@ -9,33 +9,44 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       email: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING(50)
       },
       password: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING(20)
       },
       firstName: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING(30)
       },
       lastName: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING(50)
       },
       address: {
-        type: Sequelize.STRING
+        type: Sequelize.TEXT
       },
       phoneNumber: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING(15)
       },
       gender: {
-        type: Sequelize.BOOLEAN
+        type: Sequelize.STRING(4),
       },
       image: {
-        type: Sequelize.STRING
+        type: Sequelize.TEXT
       },
       roleId: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING(4)
       },
       positionId: {
+        type: Sequelize.STRING(4)
+      },
+      isEmailVerified: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
+      },
+      access_token: {
+        type: Sequelize.STRING
+      },
+      refresh_token: {
         type: Sequelize.STRING
       },
       createdAt: {
