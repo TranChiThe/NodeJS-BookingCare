@@ -2,47 +2,9 @@ import { where } from "sequelize";
 import db from "../models/index";
 import bcrypt from 'bcryptjs';
 import { raw } from "body-parser";
+import { generalAccessToken } from './JwtService'
 const salt = bcrypt.genSaltSync(10);
 
-let handleUserLogin = (email, password) => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            let userData = {};
-            let isExist = await checkUserEmail(email);
-            if (isExist) {
-                let user = await db.User.findOne({
-                    attributes: ['email', 'roleId', 'password', 'firstName', 'lastName'],
-                    where: { email: email },
-                    raw: true
-                });
-                if (user) {
-                    //compare password
-                    let check = await bcrypt.compareSync(password, user.password);
-                    if (check) {
-                        userData.errCode = 0;
-                        userData.errMessage = `Oke`;
-                        // Delete object password
-                        delete user.password;
-                        userData.user = user;
-                    } else {
-                        userData.errCode = 3;
-                        userData.errMessage = `Wrong password`
-                    }
-                } else {
-                    userData.errCode = 2;
-                    userData.errMessage = `User's not found`;
-                }
-            } else {
-                userData.errCode = 1;
-                userData.errMessage = `Your's Email isn't exist in your system. Plz try other email!`;
-            }
-            resolve(userData)
-            console.log('check user data: ', userData);
-        } catch (e) {
-            return reject(e);
-        }
-    })
-}
 
 let checkUserEmail = (userEmail) => {
     return new Promise(async (resolve, reject) => {
@@ -57,6 +19,144 @@ let checkUserEmail = (userEmail) => {
             }
         } catch (e) {
             return reject(e);
+        }
+    })
+}
+
+let hashUserPassword = (password) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let hashPassword = await bcrypt.hashSync(password, salt);
+            resolve(hashPassword);
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
+
+let isEmailValid = (email) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let regEmail = /^[a-zA-Z0-9]+@(?:[a-zA-Z0-9]+\.)+[A-Za-z]+$/;
+            let checkEmailValid = await regEmail.test(email);
+            if (checkEmailValid === true) {
+                resolve(true);
+            } else {
+                resolve(false);
+            }
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
+
+let isPasswordValid = (password) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let passw = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,20}$/;
+            let checkPwd = await passw.test(password)
+            if (checkPwd === true) {
+                resolve(true);
+            }
+            else {
+                resolve(false);
+            }
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
+
+let handleUserRegister = (data) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let checkEmailValid = await isEmailValid(data.email);
+            let isExists = await checkUserEmail(data.email);
+            let checkPasswordValid = await isPasswordValid(data.password);
+
+            if (data.email === '' || checkEmailValid === false) {
+                resolve({
+                    errCode: 2,
+                    errMessage: `Invalid email, please check again`
+                })
+            }
+            else if (isExists === true) {
+                resolve({
+                    errCode: 1,
+                    errMessage: `Your email has been used, Please choose another email`
+                })
+            }
+            else if (data.password === '' || checkPasswordValid === false) {
+                resolve({
+                    errCode: 3,
+                    errMessage: `Password must contain uppercase letters, lowercase letters and numbers`
+                })
+            }
+            else {
+                let hashPasswordFromBcrypt = await hashUserPassword(data.password);
+                await db.User.create({
+                    email: data.email,
+                    password: hashPasswordFromBcrypt,
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                    address: data.address,
+                    phoneNumber: data.phoneNumber,
+                    gender: data.gender,
+                    image: data.image,
+                    roleId: data.role,
+                })
+                resolve({
+                    errCode: 0,
+                    message: 'Oke'
+                })
+            }
+        } catch (e) {
+            reject(e);
+        }
+    })
+
+}
+
+let handleUserLogin = (email, password) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let userData = {};
+            let isExist = await checkUserEmail(email);
+            if (isExist) {
+                let user = await db.User.findOne({
+                    attributes: ['email', 'password', 'firstName', 'lastName', 'roleId'],
+                    where: { email: email },
+                    raw: true
+                });
+                if (user) {
+                    //compare password
+                    let check = await bcrypt.compare(password, user.password);
+                    if (check) {
+                        userData.errCode = 0;
+                        userData.errMessage = `Oke`;
+                        // Delete object password
+                        delete user.password;
+                        userData.user = user;
+
+                        // access token
+                        // let access_token = generalAccessToken({
+
+                        // })
+                    } else {
+                        userData.errCode = 3;
+                        userData.errMessage = `Wrong password`
+                    }
+                } else {
+                    userData.errCode = 2;
+                    userData.errMessage = `User's not found`;
+                }
+            } else {
+                userData.errCode = 1;
+                userData.errMessage = `Your's Email isn't exist in your system. Plz try other email!`;
+            }
+            resolve(userData)
+        } catch (e) {
+            reject(e);
         }
     })
 }
@@ -88,16 +188,6 @@ let getAllUser = (userId) => {
     })
 }
 
-let hashUserPassword = (password) => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            let hashPassword = await bcrypt.hashSync(password, salt);
-            resolve(hashPassword);
-        } catch (e) {
-            reject(e);
-        }
-    })
-}
 let createNewUser = (data) => {
     return new Promise(async (resolve, reject) => {
         try {
@@ -119,7 +209,8 @@ let createNewUser = (data) => {
                     phoneNumber: data.phoneNumber,
                     gender: data.gender,
                     roleId: data.roleId,
-                    positionId: data.positionId
+                    positionId: data.positionId,
+                    image: data.avatar
                 })
                 resolve({
                     errCode: 0,
@@ -176,7 +267,13 @@ let updateUser = (data) => {
                 user.firstName = data.firstName;
                 user.lastName = data.lastName;
                 user.address = data.address;
-
+                user.phoneNumber = data.phoneNumber;
+                user.gender = data.gender;
+                user.positionId = data.positionId;
+                user.roleId = data.roleId;
+                if (data.avatar) {
+                    user.image = data.avatar;
+                }
                 await user.save();
                 resolve({
                     errCode: 0,
@@ -217,7 +314,9 @@ let getAllCodeService = (typeInput) => {
         }
     })
 }
+
 module.exports = {
+    handleUserRegister: handleUserRegister,
     handleUserLogin: handleUserLogin,
     getAllUser: getAllUser,
     createNewUser: createNewUser,

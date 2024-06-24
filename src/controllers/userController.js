@@ -2,10 +2,10 @@ import userService from "../services/userService";
 import db from '../models/index';
 import { response } from "express";
 
-// let handleUserRegister = async (req, res) => {
-//     let message = await userService.handleUserRegister(req.body);
-//     return res.status(200).json(message);
-// }
+let handleUserRegister = async (req, res) => {
+    let message = await userService.handleUserRegister(req.body);
+    return res.status(200).json(message);
+}
 
 let handleLogin = async (req, res) => {
     let email = req.body.email;
@@ -16,13 +16,16 @@ let handleLogin = async (req, res) => {
             message: "Missing inputs parameter!"
         })
     }
-    let userData = await userService.handleUserLogin(email, password);
-    return res.status(200).json({
-        errCode: userData.errCode,
-        message: userData.errMessage,
-        user: userData.user ? userData.user : {}
-    })
+    else {
+        let userData = await userService.handleUserLogin(email, password);
+        return res.status(200).json({
+            errCode: userData.errCode,
+            message: userData.errMessage,
+            user: userData.user ? userData.user : {}
+        })
+    }
 }
+
 let handleGetAllUser = async (req, res) => {
     let id = req.query.id;
     if (!id) {
@@ -79,7 +82,9 @@ let getAllCode = async (req, res) => {
         })
     }
 }
+
 module.exports = {
+    handleUserRegister: handleUserRegister,
     handleLogin: handleLogin,
     handleGetAllUser: handleGetAllUser,
     handleCreateNewUser: handleCreateNewUser,
