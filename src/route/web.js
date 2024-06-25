@@ -17,7 +17,7 @@ let initWebRouter = (app) => {
     router.post("/put-crud", homeController.putCRUD);
     router.get("/delete-crud", homeController.deleteCRUD);
 
-    // ------------------------ API ------------------------------\\
+    // ------------------------ API USER ------------------------------\\
     router.post('/api/user-register', userController.handleUserRegister);
     router.post('/api/login', userController.handleLogin);
     router.get('/api/get-all-users', userController.handleGetAllUser);
@@ -26,8 +26,13 @@ let initWebRouter = (app) => {
     router.delete('/api/delete-user', userController.handleDeleteUser);
     router.get('/api/get-allcode', userController.getAllCode);
 
-    //------------------------API DOCTOR -------------------------\\
+    //------------------------ API DOCTOR -------------------------\\
     router.get('/api/get-doctor-home', doctorController.getDoctorHome);
+    router.get('/api/get-all-doctor', doctorController.getAllDoctor);
+    router.post('/api/save-infor-doctor', doctorController.saveInforDoctor);
+    router.get('/api/get-detail-doctor-by-id', doctorController.getDetailDoctorById)
+
+
 
 
     return app.use('/', router);

@@ -15,6 +15,48 @@ let getDoctorHome = async (req, res) => {
     }
 }
 
+let getAllDoctor = async (req, res) => {
+    try {
+        let doctors = await doctorService.getAllDoctor();
+        return res.status(200).json(doctors)
+    } catch (e) {
+        console.log(e);
+        return res.status(200).json({
+            errCode: -1,
+            errMessage: 'Error from server...'
+        })
+    }
+}
+
+let saveInforDoctor = async (req, res) => {
+    try {
+        let response = await doctorService.saveDetailInforDoctor(req.body);
+        return res.status(200).json(response)
+    } catch (e) {
+        console.log(e);
+        return res.status(200).json({
+            errCode: -1,
+            errMessage: 'Error from server...'
+        })
+    }
+}
+
+let getDetailDoctorById = async (req, res) => {
+    try {
+        let infor = await doctorService.getDetailDoctorById(req.query.id)
+        return res.status(200).json(infor);
+    } catch (e) {
+        console.log(e);
+        return res.status(200).json({
+            errCode: -1,
+            errMessage: 'Error from server...'
+        })
+    }
+}
+
 module.exports = {
     getDoctorHome: getDoctorHome,
+    getAllDoctor: getAllDoctor,
+    saveInforDoctor: saveInforDoctor,
+    getDetailDoctorById: getDetailDoctorById
 }
