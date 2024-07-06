@@ -21,7 +21,9 @@ let handleLogin = async (req, res) => {
         return res.status(200).json({
             errCode: userData.errCode,
             message: userData.errMessage,
-            user: userData.user ? userData.user : {}
+            user: userData.user ? userData.user : {},
+            // access_token: userData.access_token ? userData.access_token : {},
+            // refresh_token: userData.refresh_token ? userData.refresh_token : {}
         })
     }
 }

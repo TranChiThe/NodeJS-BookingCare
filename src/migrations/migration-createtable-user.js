@@ -12,7 +12,7 @@ module.exports = {
         type: Sequelize.STRING(50)
       },
       password: {
-        type: Sequelize.STRING(20)
+        type: Sequelize.STRING()
       },
       firstName: {
         type: Sequelize.STRING(30)
@@ -33,7 +33,8 @@ module.exports = {
         type: Sequelize.TEXT
       },
       roleId: {
-        type: Sequelize.STRING(4)
+        type: Sequelize.STRING(4),
+        defaultValue: 'R3'
       },
       positionId: {
         type: Sequelize.STRING(4)
@@ -42,12 +43,6 @@ module.exports = {
         type: Sequelize.BOOLEAN,
         defaultValue: false,
         allowNull: false,
-      },
-      access_token: {
-        type: Sequelize.STRING
-      },
-      refresh_token: {
-        type: Sequelize.STRING
       },
       createdAt: {
         allowNull: false,

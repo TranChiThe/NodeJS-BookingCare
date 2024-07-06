@@ -30,7 +30,11 @@ let initWebRouter = (app) => {
     router.get('/api/get-doctor-home', doctorController.getDoctorHome);
     router.get('/api/get-all-doctor', doctorController.getAllDoctor);
     router.post('/api/save-infor-doctor', doctorController.saveInforDoctor);
-    router.get('/api/get-detail-doctor-by-id', doctorController.getDetailDoctorById)
+    router.get('/api/get-detail-doctor-by-id', doctorController.getDetailDoctorById);
+    router.post('/api/bulk-create-schedule', doctorController.bulkCreateSchedule);
+    router.get('/api/get-schedule-doctor-by-date', doctorController.getScheduleDoctorByDate);
+    router.get('/api/get-extra-info-doctor-by-id', doctorController.getExtraInfoDoctorById);
+
 
 
 

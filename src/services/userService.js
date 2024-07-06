@@ -2,7 +2,6 @@ import { where } from "sequelize";
 import db from "../models/index";
 import bcrypt from 'bcryptjs';
 import { raw } from "body-parser";
-import { generalAccessToken } from './JwtService'
 const salt = bcrypt.genSaltSync(10);
 
 
@@ -124,7 +123,7 @@ let handleUserLogin = (email, password) => {
             let isExist = await checkUserEmail(email);
             if (isExist) {
                 let user = await db.User.findOne({
-                    attributes: ['email', 'password', 'firstName', 'lastName', 'roleId'],
+                    attributes: ['id', 'email', 'password', 'firstName', 'lastName', 'roleId'],
                     where: { email: email },
                     raw: true
                 });
@@ -133,15 +132,27 @@ let handleUserLogin = (email, password) => {
                     let check = await bcrypt.compare(password, user.password);
                     if (check) {
                         userData.errCode = 0;
-                        userData.errMessage = `Oke`;
+                        userData.errMessage = `Oke`
+                        // access token
+                        // let access_token = await generalAccessToken({
+                        //     id: user.id,
+                        //     email: user.email,
+                        //     firstName: user.firstName,
+                        //     lastName: user.lastName,
+                        //     roleId: user.roleId
+                        // })
+                        // let refresh_token = await generalRefreshToken({
+                        //     id: user.id,
+                        //     email: user.email,
+                        //     firstName: user.firstName,
+                        //     lastName: user.lastName,
+                        //     roleId: user.roleId
+                        // })
                         // Delete object password
                         delete user.password;
                         userData.user = user;
-
-                        // access token
-                        // let access_token = generalAccessToken({
-
-                        // })
+                        // userData.access_token = access_token;
+                        // userData.refresh_token = refresh_token;
                     } else {
                         userData.errCode = 3;
                         userData.errMessage = `Wrong password`

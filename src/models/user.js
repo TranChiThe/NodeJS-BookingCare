@@ -9,6 +9,7 @@ module.exports = (sequelize, DataTypes) => {
       User.belongsTo(models.Allcode, { foreignKey: 'positionId', targetKey: 'keyMap', as: 'positionData' })
       User.belongsTo(models.Allcode, { foreignKey: 'gender', targetKey: 'keyMap', as: 'genderData' })
       User.hasOne(models.MarkDown, { foreignKey: 'doctorId' })
+      User.hasOne(models.Doctor_Infor, { foreignKey: 'doctorId' })
     }
   };
   User.init({
@@ -23,8 +24,6 @@ module.exports = (sequelize, DataTypes) => {
     roleId: DataTypes.STRING,
     positionId: DataTypes.STRING,
     isEmailVerified: DataTypes.BOOLEAN,
-    access_token: DataTypes.STRING,
-    refresh_token: DataTypes.STRING,
   }, {
     sequelize,
     modelName: 'User',

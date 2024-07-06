@@ -9,16 +9,16 @@ module.exports = {
                 type: Sequelize.INTEGER
             },
             keyMap: {
-                type: Sequelize.STRING
+                type: Sequelize.STRING(10)
             },
             type: {
-                type: Sequelize.STRING
+                type: Sequelize.STRING(30)
             },
             valueEn: {
-                type: Sequelize.STRING
+                type: Sequelize.STRING(100)
             },
             valueVi: {
-                type: Sequelize.STRING
+                type: Sequelize.STRING(100)
             },
             createdAt: {
                 allowNull: false,
