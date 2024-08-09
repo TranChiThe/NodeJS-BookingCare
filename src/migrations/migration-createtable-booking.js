@@ -17,10 +17,16 @@ module.exports = {
             patientId: {
                 type: Sequelize.INTEGER
             },
-            date: {
+            recordId: {
+                type: Sequelize.STRING
+            },
+            scheduleTime: {
                 type: Sequelize.STRING
             },
             timeType: {
+                type: Sequelize.STRING
+            },
+            token: {
                 type: Sequelize.STRING
             },
             createdAt: {

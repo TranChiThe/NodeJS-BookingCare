@@ -178,9 +178,28 @@ let getAllUser = (userId) => {
             let users = ''
             if (userId === 'All') {
                 users = await db.User.findAll({
+                    where: { roleId: 'R2' },
+                    order: [['id', 'DESC']],
                     attributes: {
                         exclude: ['password']
-                    }
+                    },
+                    include: [
+                        { model: db.Allcode, as: 'positionData', attributes: ['valueEn', 'valueVi'] },
+                        { model: db.Allcode, as: 'genderData', attributes: ['valueEn', 'valueVi'] },
+                        {
+                            model: db.Doctor_Infor,
+                            attributes: {
+                                exclude: ['id', 'doctorId']
+                            },
+                            include: [
+                                { model: db.Allcode, as: 'priceTypeData', attributes: ['valueEn', 'valueVi'] },
+                                { model: db.Allcode, as: 'paymentTypeData', attributes: ['valueEn', 'valueVi'] },
+                                { model: db.Allcode, as: 'provinceTypeData', attributes: ['valueEn', 'valueVi'] },
+                            ]
+                        },
+                    ],
+                    raw: false,
+                    nest: true,
                 })
             } else {
                 if (userId && userId !== 'All') {
@@ -267,11 +286,14 @@ let updateUser = (data) => {
             if (!data.id) {
                 resolve({
                     errCode: 2,
-                    errMessage: `Missing required paramater!`
+                    errMessage: `Missing required parameter!`
                 })
             }
             let user = await db.User.findOne({
                 where: { id: data.id },
+                attributes: {
+                    exclude: ['password']
+                },
                 raw: false
             })
             if (user) {
@@ -288,7 +310,7 @@ let updateUser = (data) => {
                 await user.save();
                 resolve({
                     errCode: 0,
-                    errMessage: `Update the user succeds!`
+                    errMessage: `Update the user succeeds!`
                 });
             }
             else {

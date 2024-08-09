@@ -19,6 +19,7 @@ let getTopDoctorHome = (limitInput) => {
                 include: [
                     { model: db.Allcode, as: 'positionData', attributes: ['valueEn', 'valueVi'] },
                     { model: db.Allcode, as: 'genderData', attributes: ['valueEn', 'valueVi'] },
+                    { model: db.Doctor_Infor, attributes: ['specialtyId'] }
                 ],
                 raw: true,
                 nest: true,
@@ -52,19 +53,36 @@ let getAllDoctor = () => {
     })
 }
 
+let checkRequiredFields = (inputData) => {
+    let arrFields = ['doctorId', 'contentHTML', 'contentMarkDown', 'actions', 'selectedPrice',
+        'selectedPayment', 'selectedProvince', 'nameClinic', 'addressClinic', 'specialtyId'
+    ]
+    let isValid = true;
+    let element = '';
+    for (let i = 0; i < arrFields.length; i++) {
+        if (!inputData[arrFields[i]]) {
+            isValid = false;
+            element = arrFields[i];
+            break;
+        }
+    }
+    return {
+        isValid: isValid,
+        element: element
+    }
+}
+
 let saveDetailInforDoctor = (inputData) => {
     return new Promise(async (resolve, reject) => {
         try {
-            if (!inputData.doctorId || !inputData.contentHTML ||
-                !inputData.contentMarkDown || !inputData.actions ||
-                !inputData.selectedPrice || !inputData.selectedPayment ||
-                !inputData.selectedProvince || !inputData.nameClinic ||
-                !inputData.addressClinic) {
+            let checkObj = checkRequiredFields(inputData);
+            if (checkObj.isValid === false) {
                 resolve({
                     errCode: 1,
-                    errMessage: `Missing parameter...`
+                    errMessage: `Missing parameter: ${checkObj.element}`
                 })
-            } else {
+            }
+            else {
                 if (inputData.actions === "CREATE") {
                     await db.MarkDown.create({
                         contentHTML: inputData.contentHTML,
@@ -95,6 +113,8 @@ let saveDetailInforDoctor = (inputData) => {
                     doctorInfo.priceId = inputData.selectedPrice;
                     doctorInfo.paymentId = inputData.selectedPayment;
                     doctorInfo.provinceId = inputData.selectedProvince;
+                    doctorInfo.specialtyId = inputData.selectedSpecialty;
+                    doctorInfo.clinicId = inputData.selectedClinic;
                     doctorInfo.nameClinic = inputData.nameClinic;
                     doctorInfo.addressClinic = inputData.addressClinic;
                     doctorInfo.note = inputData.note;
@@ -106,6 +126,8 @@ let saveDetailInforDoctor = (inputData) => {
                         priceId: inputData.selectedPrice,
                         paymentId: inputData.selectedPayment,
                         provinceId: inputData.selectedProvince,
+                        specialtyId: inputData.selectedSpecialty,
+                        clinicId: inputData.selectedClinic,
                         nameClinic: inputData.nameClinic,
                         addressClinic: inputData.addressClinic,
                         note: inputData.note
@@ -154,8 +176,11 @@ let getDetailDoctorById = (inputId) => {
                                 { model: db.Allcode, as: 'priceTypeData', attributes: ['valueEn', 'valueVi'] },
                                 { model: db.Allcode, as: 'paymentTypeData', attributes: ['valueEn', 'valueVi'] },
                                 { model: db.Allcode, as: 'provinceTypeData', attributes: ['valueEn', 'valueVi'] },
+                                // { model: db.Specialty, as: 'specialtyData', attributes: ['nameVi', 'nameEn'] }
+
                             ]
                         },
+
                     ],
                     raw: false,
                     nest: true,
@@ -246,7 +271,11 @@ let getScheduleByDate = (doctorId, date) => {
                     include: [
                         {
                             model: db.Allcode, as: 'timeTypeData', attributes: ['valueEn', 'valueVi']
-                        }
+                        },
+                        {
+                            model: db.User, as: 'doctorData', attributes: ['firstName', 'lastName']
+                        },
+                        // { model: db.Schedule, attributes: ['currentNumber', 'maxNumber', 'date', 'timeType'] }
                     ],
                     raw: false,
                     nest: true
@@ -355,6 +384,29 @@ let getProfileDoctorById = (inputId) => {
     })
 }
 
+// let getAllDoctorSchedule = () => {
+//     return new Promise(async (resolve, reject) => {
+//         try {
+//             let doctors = await db.User.findAll({
+//                 where: { roleId: 'R2' },
+//                 attributes: {
+//                     exclude: ['password', 'image'],
+//                 },
+//                 include: [
+//                     { model: db.Schedule, attributes: ['currentNumber', 'maxNumber', 'date', 'timeType'] }
+//                 ],
+//                 raw: false,
+//                 nest: true,
+//             })
+//             resolve({
+//                 errCode: 0,
+//                 data: doctors
+//             })
+//         } catch (e) {
+//             reject(e);
+//         }
+//     })
+// }
 
 module.exports = {
     getTopDoctorHome: getTopDoctorHome,
@@ -365,4 +417,5 @@ module.exports = {
     getScheduleByDate: getScheduleByDate,
     getExtraInfoDoctorById: getExtraInfoDoctorById,
     getProfileDoctorById: getProfileDoctorById,
+    // getAllDoctorSchedule: getAllDoctorSchedule,
 }
