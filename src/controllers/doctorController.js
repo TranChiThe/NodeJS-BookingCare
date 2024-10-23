@@ -7,8 +7,8 @@ let getDoctorHome = async (req, res) => {
         let response = await doctorService.getTopDoctorHome(+limit);
         return res.status(200).json(response);
     } catch (e) {
-        console.log(e);
-        return res.status(200).json({
+        console.error(e);
+        return res.status(500).json({
             errorCode: -1,
             errMessage: 'Error from server...'
         })
@@ -20,8 +20,8 @@ let getAllDoctor = async (req, res) => {
         let doctors = await doctorService.getAllDoctor();
         return res.status(200).json(doctors)
     } catch (e) {
-        console.log(e);
-        return res.status(200).json({
+        console.error(e);
+        return res.status(500).json({
             errCode: -1,
             errMessage: 'Error from server...'
         })
@@ -33,8 +33,8 @@ let saveInforDoctor = async (req, res) => {
         let response = await doctorService.saveDetailInforDoctor(req.body);
         return res.status(200).json(response)
     } catch (e) {
-        console.log(e);
-        return res.status(200).json({
+        console.error(e);
+        return res.status(500).json({
             errCode: -1,
             errMessage: 'Error from server...'
         })
@@ -46,8 +46,8 @@ let getDetailDoctorById = async (req, res) => {
         let infor = await doctorService.getDetailDoctorById(req.query.id)
         return res.status(200).json(infor);
     } catch (e) {
-        console.log(e);
-        return res.status(200).json({
+        console.error(e);
+        return res.status(500).json({
             errCode: -1,
             errMessage: 'Error from server...'
         })
@@ -59,8 +59,8 @@ let bulkCreateSchedule = async (req, res) => {
         let infor = await doctorService.bulkCreateSchedule(req.body)
         return res.status(200).json(infor);
     } catch (e) {
-        console.log(e);
-        return res.status(200).json({
+        console.error(e);
+        return res.status(500).json({
             errCode: -1,
             errMessage: 'Error from server...'
         })
@@ -72,8 +72,8 @@ let getScheduleDoctorByDate = async (req, res) => {
         let infor = await doctorService.getScheduleByDate(req.query.doctorId, req.query.date)
         return res.status(200).json(infor);
     } catch (e) {
-        console.log(e);
-        return res.status(200).json({
+        console.error(e);
+        return res.status(500).json({
             errCode: -1,
             errMessage: 'Error from server...'
         })
@@ -85,8 +85,8 @@ let getExtraInfoDoctorById = async (req, res) => {
         let infor = await doctorService.getExtraInfoDoctorById(req.query.doctorId)
         return res.status(200).json(infor);
     } catch (e) {
-        console.log(e);
-        return res.status(200).json({
+        console.error(e);
+        return res.status(500).json({
             errCode: -1,
             errMessage: 'Error from server...'
         })
@@ -98,8 +98,8 @@ let getProfileDoctorById = async (req, res) => {
         let infor = await doctorService.getProfileDoctorById(req.query.doctorId)
         return res.status(200).json(infor);
     } catch (e) {
-        console.log(e);
-        return res.status(200).json({
+        console.error(e);
+        return res.status(500).json({
             errCode: -1,
             errMessage: 'Error from server...'
         })
@@ -111,22 +111,50 @@ let getAllDoctorSchedule = async (req, res) => {
         let info = await doctorService.getAllDoctorSchedule()
         return res.status(200).json(info);
     } catch (e) {
-        console.log(e);
-        return res.status(200).json({
+        console.error(e);
+        return res.status(500).json({
             errCode: -1,
             errMessage: 'Error from server...'
         })
     }
 }
 
+let deleteDoctorSchedule = async (req, res) => {
+    try {
+        let info = await doctorService.deleteDoctorSchedule(req.query.id)
+        return res.status(200).json(info);
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({
+            errCode: -1,
+            errMessage: 'Error from server...'
+        })
+    }
+}
+
+let doctorSearch = async (req, res) => {
+    try {
+        let response = await doctorService.doctorSearch(req.query.searchTerm, req.query.specialtyId, req.query.clinicId);
+        return res.status(200).json(response);
+    } catch (e) {
+        console.error('Error in doctorSearch controller:', e);
+        return res.status(500).json({
+            errorCode: -1,
+            errMessage: 'Error from server...'
+        })
+    }
+}
+
 module.exports = {
-    getDoctorHome: getDoctorHome,
-    getAllDoctor: getAllDoctor,
-    saveInforDoctor: saveInforDoctor,
-    getDetailDoctorById: getDetailDoctorById,
+    getDoctorHome,
+    getAllDoctor,
+    saveInforDoctor,
+    getDetailDoctorById,
     bulkCreateSchedule,
     getScheduleDoctorByDate,
     getExtraInfoDoctorById,
     getProfileDoctorById,
-    getAllDoctorSchedule
+    getAllDoctorSchedule,
+    deleteDoctorSchedule,
+    doctorSearch
 }

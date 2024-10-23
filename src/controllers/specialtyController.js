@@ -6,7 +6,7 @@ let createSpecialty = async (req, res) => {
         return res.status(200).json(info);
     } catch (e) {
         console.log(e);
-        return res.status(200).json({
+        return res.status(500).json({
             errCode: -1,
             errMessage: 'Error from server...'
         })
@@ -19,7 +19,20 @@ let getAllSpecialty = async (req, res) => {
         return res.status(200).json(info);
     } catch (e) {
         console.log(e);
-        return res.status(200).json({
+        return res.status(500).json({
+            errCode: -1,
+            errMessage: 'Error from server...'
+        })
+    }
+}
+
+let getSpecialtyById = async (req, res) => {
+    try {
+        let info = await specialtyService.getSpecialtyById(req.query.id)
+        return res.status(200).json(info);
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({
             errCode: -1,
             errMessage: 'Error from server...'
         })
@@ -32,15 +45,18 @@ let getDetailSpecialtyById = async (req, res) => {
         return res.status(200).json(info);
     } catch (e) {
         console.log(e);
-        return res.status(200).json({
+        return res.status(500).json({
             errCode: -1,
             errMessage: 'Error from server...'
         })
     }
 }
 
+
+
 module.exports = {
     createSpecialty: createSpecialty,
     getAllSpecialty: getAllSpecialty,
+    getSpecialtyById: getSpecialtyById,
     getDetailSpecialtyById: getDetailSpecialtyById,
 }

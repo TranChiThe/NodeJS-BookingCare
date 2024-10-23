@@ -17,11 +17,26 @@ module.exports = {
             address: {
                 type: Sequelize.STRING
             },
-            description: {
+            introductionHTML: {
+                type: Sequelize.TEXT
+            },
+            introductionMarkdown: {
+                type: Sequelize.TEXT
+            },
+            proStrengthHTML: {
+                type: Sequelize.TEXT
+            },
+            proStrengthMarkdown: {
+                type: Sequelize.TEXT
+            },
+            equipmentHTML: {
+                type: Sequelize.TEXT
+            },
+            equipmentMarkdown: {
                 type: Sequelize.TEXT
             },
             image: {
-                type: Sequelize.STRING
+                type: Sequelize.BLOB('long')
             },
             createdAt: {
                 allowNull: false,

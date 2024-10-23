@@ -3,6 +3,8 @@ import bodyParser from "body-parser";
 import viewEngine from "./config/viewEngine"
 import initWebRouters from './route/web'
 import connectDB from './config/connectDB'
+import cookieParser from 'cookie-parser';
+
 // import cors from 'cors';
 require('dotenv').config();
 
@@ -17,12 +19,15 @@ app.use(function (req, res, next) {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
 
     // Request headers you wish to allow
-    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization, token');
 
     // Set to true if you need the website to include cookies in the requests sent
     // to the API (e.g. in case you use sessions)
     res.setHeader('Access-Control-Allow-Credentials', true);
 
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
     // Pass to next layer of middleware
     next();
 });
@@ -35,7 +40,7 @@ let hostname = process.env.HOSTNAME
 
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
-
+app.use(cookieParser());
 viewEngine(app);
 initWebRouters(app);
 

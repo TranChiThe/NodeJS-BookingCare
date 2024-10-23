@@ -1,9 +1,10 @@
 import { raw } from 'body-parser';
 import db from '../models/index';
-import { where } from 'sequelize';
+import { where, Op, sequelize } from 'sequelize';
 import dotenv from 'dotenv';
 dotenv.config();
 import _, { includes, reject } from 'lodash'
+import user from '../models/user';
 const MAX_NUMBER_SCHEDULE = process.env.MAX_NUMBER_SCHEDULE
 
 let getTopDoctorHome = (limitInput) => {
@@ -55,7 +56,7 @@ let getAllDoctor = () => {
 
 let checkRequiredFields = (inputData) => {
     let arrFields = ['doctorId', 'contentHTML', 'contentMarkDown', 'actions', 'selectedPrice',
-        'selectedPayment', 'selectedProvince', 'nameClinic', 'addressClinic', 'specialtyId'
+        'selectedPayment', 'selectedProvince', 'selectedClinic', 'specialtyId'
     ]
     let isValid = true;
     let element = '';
@@ -115,8 +116,6 @@ let saveDetailInforDoctor = (inputData) => {
                     doctorInfo.provinceId = inputData.selectedProvince;
                     doctorInfo.specialtyId = inputData.selectedSpecialty;
                     doctorInfo.clinicId = inputData.selectedClinic;
-                    doctorInfo.nameClinic = inputData.nameClinic;
-                    doctorInfo.addressClinic = inputData.addressClinic;
                     doctorInfo.note = inputData.note;
                     await doctorInfo.save();
                 } else {
@@ -128,8 +127,6 @@ let saveDetailInforDoctor = (inputData) => {
                         provinceId: inputData.selectedProvince,
                         specialtyId: inputData.selectedSpecialty,
                         clinicId: inputData.selectedClinic,
-                        nameClinic: inputData.nameClinic,
-                        addressClinic: inputData.addressClinic,
                         note: inputData.note
                     })
 
@@ -176,8 +173,6 @@ let getDetailDoctorById = (inputId) => {
                                 { model: db.Allcode, as: 'priceTypeData', attributes: ['valueEn', 'valueVi'] },
                                 { model: db.Allcode, as: 'paymentTypeData', attributes: ['valueEn', 'valueVi'] },
                                 { model: db.Allcode, as: 'provinceTypeData', attributes: ['valueEn', 'valueVi'] },
-                                // { model: db.Specialty, as: 'specialtyData', attributes: ['nameVi', 'nameEn'] }
-
                             ]
                         },
 
@@ -280,6 +275,10 @@ let getScheduleByDate = (doctorId, date) => {
                     raw: false,
                     nest: true
                 })
+                let positionData = db.User.findAll({
+                    where: { id: doctorId },
+                    raw: true
+                })
                 if (!dataSchedule) {
                     dataSchedule: [];
                     resolve({
@@ -290,6 +289,7 @@ let getScheduleByDate = (doctorId, date) => {
                 resolve({
                     errCode: 0,
                     data: dataSchedule,
+                    positionData: positionData
                 })
             }
         } catch (e) {
@@ -316,6 +316,8 @@ let getExtraInfoDoctorById = (doctorId) => {
                         { model: db.Allcode, as: 'priceTypeData', attributes: ['valueEn', 'valueVi'] },
                         { model: db.Allcode, as: 'paymentTypeData', attributes: ['valueEn', 'valueVi'] },
                         { model: db.Allcode, as: 'provinceTypeData', attributes: ['valueEn', 'valueVi'] },
+                        { model: db.Clinic, attributes: ['name', 'address'] },
+
                     ],
                     raw: false,
                     nest: true,
@@ -384,29 +386,136 @@ let getProfileDoctorById = (inputId) => {
     })
 }
 
-// let getAllDoctorSchedule = () => {
+let deleteDoctorSchedule = (inputId) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!inputId) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing parameter!'
+                })
+            } else {
+                let appointment = await db.Schedule.findOne({
+                    where: { id: inputId }
+                })
+                if (!appointment) {
+                    resolve({
+                        errCode: 1,
+                        errMessage: 'Appointment does not exist'
+                    })
+                } else {
+                    let data = await db.Schedule.destroy({
+                        where: { id: inputId }
+                    })
+                    resolve({
+                        errCode: 0,
+                        errMessage: 'Appointment has been deleted'
+                    })
+                }
+            }
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
+
+// let doctorSearch = (searchTerm) => {
 //     return new Promise(async (resolve, reject) => {
 //         try {
-//             let doctors = await db.User.findAll({
-//                 where: { roleId: 'R2' },
+//             let searchConditions = {};
+//             if (searchTerm) {
+//                 searchConditions[Op.or] = [
+//                     { firstName: { [Op.like]: `%${searchTerm}%` } },
+//                     { lastName: { [Op.like]: `%${searchTerm}%` } },
+//                     db.sequelize.where(
+//                         db.sequelize.fn('CONCAT', db.sequelize.col('firstName'), ' ', db.sequelize.col('lastName'), ' '),
+//                         { [Op.like]: `%${searchTerm}%` }
+//                     )
+//                 ];
+//             }
+//             let users = await db.User.findAll({
+//                 where: {
+//                     roleId: 'R2',
+//                     ...searchConditions
+//                 },
+//                 order: [['createdAt', 'DESC']],
 //                 attributes: {
-//                     exclude: ['password', 'image'],
+//                     exclude: ['password'],
 //                 },
 //                 include: [
-//                     { model: db.Schedule, attributes: ['currentNumber', 'maxNumber', 'date', 'timeType'] }
+//                     { model: db.Allcode, as: 'positionData', attributes: ['valueEn', 'valueVi'] },
+//                     { model: db.Allcode, as: 'genderData', attributes: ['valueEn', 'valueVi'] },
+//                     { model: db.Doctor_Infor, attributes: ['specialtyId', 'clinicId'] }
 //                 ],
-//                 raw: false,
+//                 raw: true,
 //                 nest: true,
 //             })
+//             console.log('check user: ', users)
 //             resolve({
 //                 errCode: 0,
-//                 data: doctors
+//                 errMessage: 'Oke',
+//                 data: users,
 //             })
 //         } catch (e) {
 //             reject(e);
 //         }
 //     })
 // }
+
+let doctorSearch = (searchTerm, specialtyId, clinicId) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let searchConditions = {};
+            let users = [];
+            if (searchTerm) {
+                searchConditions[Op.or] = [
+                    { firstName: { [Op.like]: `%${searchTerm}%` } },
+                    { lastName: { [Op.like]: `%${searchTerm}%` } },
+                    db.sequelize.where(
+                        db.sequelize.fn('CONCAT', db.sequelize.col('firstName'), ' ', db.sequelize.col('lastName'), ' '),
+                        { [Op.like]: `%${searchTerm}%` }
+                    )
+                ];
+            }
+            let searchConditionDoctor = {};
+            if (specialtyId) {
+                searchConditionDoctor.specialtyId = specialtyId;
+            }
+            if (clinicId) {
+                searchConditionDoctor.clinicId = clinicId;
+            }
+            users = await db.User.findAll({
+                where: {
+                    roleId: 'R2',
+                    ...searchConditions
+                },
+                limit: 5,
+                order: [['createdAt', 'DESC']],
+                attributes: {
+                    exclude: ['password'],
+                },
+                include: [
+                    { model: db.Allcode, as: 'positionData', attributes: ['valueEn', 'valueVi'] },
+                    { model: db.Allcode, as: 'genderData', attributes: ['valueEn', 'valueVi'] },
+                    {
+                        model: db.Doctor_Infor,
+                        where: searchConditionDoctor,
+                        attributes: ['specialtyId', 'clinicId']
+                    }
+                ],
+                raw: true,
+                nest: true,
+            })
+            resolve({
+                errCode: 0,
+                errMessage: 'Oke',
+                data: users,
+            })
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
 
 module.exports = {
     getTopDoctorHome: getTopDoctorHome,
@@ -417,5 +526,6 @@ module.exports = {
     getScheduleByDate: getScheduleByDate,
     getExtraInfoDoctorById: getExtraInfoDoctorById,
     getProfileDoctorById: getProfileDoctorById,
-    // getAllDoctorSchedule: getAllDoctorSchedule,
+    deleteDoctorSchedule: deleteDoctorSchedule,
+    doctorSearch: doctorSearch
 }

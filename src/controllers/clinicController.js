@@ -1,11 +1,11 @@
-import patientService from '../services/patientService'
+import clinicService from '../services/clinicService'
 
-let postBookAppointment = async (req, res) => {
+let createdClinic = async (req, res) => {
     try {
-        let info = await patientService.postBookAppointment(req.body)
+        let info = await clinicService.createdClinic(req.body)
         return res.status(200).json(info);
     } catch (e) {
-        console.error(e);
+        console.log(e);
         return res.status(500).json({
             errCode: -1,
             errMessage: 'Error from server...'
@@ -13,12 +13,12 @@ let postBookAppointment = async (req, res) => {
     }
 }
 
-let postVerifyBookAppointment = async (req, res) => {
+let getAllClinic = async (req, res) => {
     try {
-        let info = await patientService.postVerifyBookAppointment(req.body)
+        let info = await clinicService.getAllClinic()
         return res.status(200).json(info);
     } catch (e) {
-        console.error(e);
+        console.log(e);
         return res.status(500).json({
             errCode: -1,
             errMessage: 'Error from server...'
@@ -26,12 +26,12 @@ let postVerifyBookAppointment = async (req, res) => {
     }
 }
 
-let HomeSearch = async (req, res) => {
+let getDetailClinicById = async (req, res) => {
     try {
-        let info = await patientService.HomeSearch(req.query.type, req.query.searchTerm)
+        let info = await clinicService.getDetailClinicById(req.query.id)
         return res.status(200).json(info);
     } catch (e) {
-        console.error(e);
+        console.log(e);
         return res.status(500).json({
             errCode: -1,
             errMessage: 'Error from server...'
@@ -40,7 +40,8 @@ let HomeSearch = async (req, res) => {
 }
 
 module.exports = {
-    postBookAppointment,
-    postVerifyBookAppointment,
-    HomeSearch
+    createdClinic: createdClinic,
+    getAllClinic: getAllClinic,
+    getDetailClinicById: getDetailClinicById
+
 }

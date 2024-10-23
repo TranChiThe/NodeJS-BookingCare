@@ -1,24 +1,39 @@
 import db from '../models/index';
 import dotenv from 'dotenv';
+import { name } from 'ejs';
 dotenv.config();
-import _, { defaults, first, reject } from 'lodash'
+import _, { defaults, first, flatMap, includes, reject } from 'lodash'
 
 let createSpecialty = (data) => {
     return new Promise(async (resolve, reject) => {
         try {
-            if (!data.nameVi || !data.nameEn || !data.imageBase64 || !data.descriptionHTML || !data.descriptionMarkdown) {
+            if (!data.name || !data.image || !data.descriptionHTML || !data.descriptionMarkdown) {
                 resolve({
                     errCode: 1,
                     errMessage: 'Missing input parameter!'
                 })
-            } else {
-                await db.Specialty.create({
-                    nameVi: data.nameVi,
-                    nameEn: data.nameEn,
-                    image: data.imageBase64,
-                    descriptionHTML: data.descriptionHTML,
-                    descriptionMarkdown: data.descriptionMarkdown
+            }
+            else {
+                let specialtyInfo = await db.Specialty.findOne({
+                    where: { name: data.name },
+                    attributes: ['id', 'name'],
+                    raw: false
                 })
+                if (specialtyInfo && data.actions === 'EDIT') {
+                    specialtyInfo.name = data.name;
+                    specialtyInfo.image = data.image;
+                    specialtyInfo.descriptionHTML = data.descriptionHTML;
+                    specialtyInfo.descriptionMarkdown = data.descriptionMarkdown;
+                    await specialtyInfo.save();
+                }
+                else if (!specialtyInfo && data.actions === 'CREATE') {
+                    let specialty = await db.Specialty.create({
+                        name: data.name,
+                        image: data.image,
+                        descriptionHTML: data.descriptionHTML,
+                        descriptionMarkdown: data.descriptionMarkdown
+                    })
+                }
                 resolve({
                     errCode: 0,
                     errMessage: 'Oke'
@@ -30,10 +45,17 @@ let createSpecialty = (data) => {
     })
 }
 
+
 let getAllSpecialty = () => {
     return new Promise(async (resolve, reject) => {
         try {
-            let data = await db.Specialty.findAll();
+            let data = await db.Specialty.findAll({
+                include: [
+                    { model: db.Allcode, as: 'specialtyData', attributes: ['valueVi', 'valueEn'] }
+                ],
+                raw: false,
+                nest: true,
+            })
             if (data && data.length > 0) {
                 data.map(item => {
                     item.image = new Buffer.from(item.image, 'base64').toString('binary');
@@ -45,6 +67,33 @@ let getAllSpecialty = () => {
                 errMessage: "Oke",
                 data
             })
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
+
+let getSpecialtyById = (inputID) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!inputID) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing parameter'
+                })
+            } else {
+                let data = await db.Specialty.findOne({
+                    where: {
+                        name: inputID
+                    },
+                })
+                resolve({
+                    errCode: 0,
+                    errMessage: 'Oke',
+                    data
+                })
+            }
+
         } catch (e) {
             reject(e);
         }
@@ -64,10 +113,14 @@ let getDetailSpecialtyById = (inputId, location) => {
             else {
                 let data = await db.Specialty.findOne({
                     where: {
-                        id: inputId
+                        name: inputId
                     },
+                    attributes: ['name', 'descriptionHTML', 'descriptionMarkdown', 'image'],
+                    include: [
+                        { model: db.Allcode, as: 'specialtyData', attributes: ['valueVi', 'valueEn'] }
+                    ],
                     raw: true,
-                    attributes: ['descriptionHTML', 'descriptionMarkdown']
+                    nest: true,
                 })
                 if (data) {
                     let doctorSpecialty = [];
@@ -77,8 +130,8 @@ let getDetailSpecialtyById = (inputId, location) => {
                             where: {
                                 specialtyId: inputId
                             },
-                            raw: true,
                             attributes: ['doctorId', 'provinceId'],
+                            raw: true
                         })
                     }
                     else {
@@ -92,7 +145,8 @@ let getDetailSpecialtyById = (inputId, location) => {
                         })
                     }
                     data.doctorSpecialty = doctorSpecialty;
-                } else data = {}
+                }
+                else data = {}
                 resolve({
                     errCode: 0,
                     errMessage: 'Oke',
@@ -107,5 +161,6 @@ let getDetailSpecialtyById = (inputId, location) => {
 module.exports = {
     createSpecialty,
     getAllSpecialty,
-    getDetailSpecialtyById
+    getSpecialtyById,
+    getDetailSpecialtyById,
 }
