@@ -13,16 +13,13 @@ module.exports = (sequelize, DataTypes) => {
     }
   };
   Patient.init({
-    roleId: DataTypes.STRING,
     email: DataTypes.STRING,
     firstName: DataTypes.STRING,
     lastName: DataTypes.STRING,
     address: DataTypes.TEXT,
     phoneNumber: DataTypes.STRING,
-    reason: DataTypes.STRING,
     birthday: DataTypes.STRING,
     gender: DataTypes.STRING,
-
   }, {
     sequelize,
     modelName: 'Patient',

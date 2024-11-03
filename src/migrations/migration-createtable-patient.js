@@ -8,10 +8,6 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      roleId: {
-        type: Sequelize.STRING(4),
-        defaultValue: 'R3'
-      },
       email: {
         type: Sequelize.STRING(50)
       },
@@ -26,9 +22,6 @@ module.exports = {
       },
       phoneNumber: {
         type: Sequelize.STRING(15)
-      },
-      reason: {
-        type: Sequelize.STRING,
       },
       birthday: {
         type: Sequelize.STRING(30),

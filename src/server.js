@@ -43,8 +43,8 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
 app.use(cookieParser());
 viewEngine(app);
 initWebRouters(app);
-
 connectDB();
+
 app.listen(port, () => {
     console.log("Backend NodeJs is running on the port: " + port)
 })

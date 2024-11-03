@@ -19,7 +19,6 @@ let sendSimpleEmail = async (dataSend) => {
         from: '"HealthCareCanTho 👻" <healthcarecantho@gmail.com>', // sender address
         to: dataSend.receiverEmail, // list of receivers
         subject: "Thông tin đặt lịch khám bệnh ✔", // Subject line
-        // text: "Hello world?", // plain text body
         html: getBodyHTMLEmail(dataSend)
     });
 }
@@ -32,6 +31,7 @@ let getBodyHTMLEmail = (dataSend) => {
         <h3> Xin chào ${dataSend.patientName}!</h3>
         <p> Bạn nhận được email này vì đã đặt lịch khám bệnh online trên hệ thống healthcarre của chúng tôi.</p>
         <p> Thông tin đặt lịch khám bệnh: </p>
+        <div><b> Mã hồ sơ: ${dataSend.recordId}</b></div>
         <div><b> Thời gian: ${dataSend.time}</b></div>
         <div><b> Bác sĩ: ${dataSend.doctorName}</b></div>
         <p>Nếu các thôn tin trên là đúng sự thật, vui lòng click vào link bên dưới để xác nhận và hoàn tất thủ tục đặt lịch khám bệnh của bạn</p>
@@ -43,10 +43,11 @@ let getBodyHTMLEmail = (dataSend) => {
     }
     if (dataSend.language === 'en') {
         result =
-            `
+            ` 
             <h3> Dear, ${dataSend.patientName}!</h3>
             <p> You received this email because you made an online medical appointment on our healthcarre system.</p>
             <p> Information for scheduling medical examination: </p>
+            <div><b> Record code: ${dataSend.recordId}</b></div>
             <div><b> Time: ${dataSend.time}</b></div>
             <div><b> Doctor: ${dataSend.doctorName}</b></div>
             <p>If the above information is true, please click on the link below  to confirm and complete your medical appointment booking procedure.</p>

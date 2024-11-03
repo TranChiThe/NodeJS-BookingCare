@@ -117,9 +117,55 @@ let getDetailClinicById = (inputId) => {
         }
     })
 }
+
+let updateClinicInformation = (data) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!data.name || !data.image || !data.address ||
+                !data.introductionHTML || !data.introductionMarkdown ||
+                !data.proStrengthHTML || !data.proStrengthMarkdown ||
+                !data.equipmentHTML || !data.equipmentMarkdown
+            ) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing input parameter!'
+                })
+            } else {
+                let clinic = await db.Clinic.findOne({
+                    where: { id: data.id }
+                })
+                if (clinic) {
+                    clinic.id = data.id;
+                    clinic.name = data.name;
+                    clinic.image = data.image;
+                    clinic.address = data.address;
+                    clinic.introductionHTML = data.introductionHTML;
+                    clinic.proStrengthHTML = data.proStrengthHTML;
+                    clinic.equipmentHTML = data.equipmentHTML;
+                    clinic.introductionMarkdown = data.introductionMarkdown;
+                    clinic.proStrengthMarkdown = data.proStrengthMarkdown;
+                    clinic.equipmentMarkdown = data.equipmentMarkdown;
+                    await clinic.save();
+                    resolve({
+                        errCode: 0,
+                        errMessage: `Update the clinic succeeds!`
+                    });
+                }
+                resolve({
+                    errCode: 0,
+                    errMessage: 'Oke'
+                })
+            }
+        } catch (e) {
+            reject(e);
+        }
+    })
+
+}
 module.exports = {
     createdClinic: createdClinic,
     getAllClinic: getAllClinic,
-    getDetailClinicById: getDetailClinicById
+    getDetailClinicById: getDetailClinicById,
+    updateClinicInformation,
 }
 

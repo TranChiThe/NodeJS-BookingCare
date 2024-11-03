@@ -14,10 +14,13 @@ module.exports = (sequelize, DataTypes) => {
         }
     };
     Appointment.init({
+        fullName: DataTypes.STRING,
+        phoneNumber: DataTypes.STRING,
         statusId: DataTypes.STRING,
         doctorId: DataTypes.INTEGER,
         patientId: DataTypes.INTEGER,
         recordId: DataTypes.STRING,
+        date: DataTypes.STRING,
         scheduleTime: DataTypes.STRING,
         timeType: DataTypes.STRING,
         token: DataTypes.STRING,

@@ -1,4 +1,7 @@
 import doctorService from '../services/doctorService'
+import db from '../models/index'
+const cron = require('node-cron');
+
 
 let getDoctorHome = async (req, res) => {
     let limit = req.query.limit;
@@ -132,18 +135,110 @@ let deleteDoctorSchedule = async (req, res) => {
     }
 }
 
+// let doctorSearch = async (req, res) => {
+//     try {
+//         let response = await doctorService.doctorSearch(req.query.searchTerm, req.query.specialtyId, req.query.clinicId);
+//         return res.status(200).json(response);
+//     } catch (e) {
+//         console.error('Error in doctorSearch controller:', e);
+//         return res.status(500).json({
+//             errorCode: -1,
+//             errMessage: 'Error from server...'
+//         })
+//     }
+// }
+
 let doctorSearch = async (req, res) => {
     try {
-        let response = await doctorService.doctorSearch(req.query.searchTerm, req.query.specialtyId, req.query.clinicId);
+        const { searchTerm, specialtyId, clinicId, page = 1, limit = 5 } = req.query;
+        const response = await doctorService.doctorSearch(searchTerm, specialtyId, clinicId, parseInt(page), parseInt(limit));
         return res.status(200).json(response);
     } catch (e) {
         console.error('Error in doctorSearch controller:', e);
         return res.status(500).json({
             errorCode: -1,
             errMessage: 'Error from server...'
+        });
+    }
+};
+
+
+let getTotalDoctor = async (req, res) => {
+    try {
+        let info = await doctorService.getTotalDoctor(req.query.year, req.query.week)
+        return res.status(200).json(info);
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({
+            errCode: -1,
+            errMessage: 'Error from server...'
         })
     }
 }
+
+let createBusySchedule = async (req, res) => {
+    try {
+        let infor = await doctorService.createBusySchedule(req.body)
+        return res.status(200).json(infor);
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({
+            errCode: -1,
+            errMessage: 'Error from server...'
+        })
+    }
+}
+
+// const deleteOldSchedules = async () => {
+//     try {
+//         // Calculate the timestamp for six months ago
+//         const sixMonthsAgo = new Date();
+//         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+//         // Delete schedules older than six months
+//         const result = await db.Schedule.destroy({
+//             where: {
+//                 date: { [Op.lt]: sixMonthsAgo.getTime().toString() } // Assuming 'date' is stored as a string timestamp
+//             }
+//         });
+
+//         console.log(`${result} old schedule records deleted successfully.`);
+//     } catch (error) {
+//         console.error("Error deleting old schedules:", error);
+//     }
+// };
+
+// // Schedule the task to run daily at midnight
+// cron.schedule('0 0 * * *', () => {
+//     console.log("Running daily cleanup task to delete old schedule records...");
+//     deleteOldSchedules();
+// });
+
+const deleteOldSchedules = async () => {
+    try {
+        // Calculate the timestamp for 24 hours ago
+        const oneDayAgo = new Date();
+        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+        // Delete schedules older than 24 hours
+        const result = await db.Schedule.destroy({
+            where: {
+                date: { [Op.lt]: oneDayAgo.getTime().toString() } // Assuming 'date' is stored as a string timestamp
+            }
+        });
+
+        console.log(`${result} old schedule records deleted successfully.`);
+    } catch (error) {
+        console.error("Error deleting old schedules:", error);
+    }
+};
+
+// Schedule the task to run daily at midnight
+cron.schedule('0 0 * * *', () => {
+    console.log("Running daily cleanup task to delete old schedule records...");
+    deleteOldSchedules();
+});
+
 
 module.exports = {
     getDoctorHome,
@@ -156,5 +251,7 @@ module.exports = {
     getProfileDoctorById,
     getAllDoctorSchedule,
     deleteDoctorSchedule,
-    doctorSearch
+    doctorSearch,
+    getTotalDoctor,
+    createBusySchedule
 }
