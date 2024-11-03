@@ -189,6 +189,7 @@ let createBusySchedule = async (req, res) => {
     }
 }
 
+
 const deleteOldSchedules = async () => {
     try {
         // Calculate the timestamp for 24 hours ago
