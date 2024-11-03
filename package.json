@@ -1,0 +1,53 @@
+{
+  "name": "bookingcare_backend",
+  "version": "1.0.0",
+  "description": "back end nodejs booking care",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon --exec babel-node src/server.js",
+    "migrate:up": "npx sequelize-cli db:migrate",
+    "migrate:undo": "npx sequelize-cli db:migrate:undo"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TranChiThe/NodeJS-BookingCare.git"
+  },
+  "keywords": [
+    "fullstack",
+    "nodejs",
+    "express",
+    "BookingCare"
+  ],
+  "author": "Tran Chi The",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TranChiThe/NodeJS-BookingCare/issues"
+  },
+  "homepage": "https://github.com/TranChiThe/NodeJS-BookingCare#readme",
+  "dependencies": {
+    "@google-cloud/dialogflow": "^6.10.0",
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.19.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dialogflow": "1.2.0",
+    "dotenv": "^8.2.0",
+    "ejs": "^3.1.5",
+    "express": "^4.17.1",
+    "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.17.21",
+    "node-cron": "^3.0.3",
+    "nodemailer": "6.6.3",
+    "uuid": "8.3.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.10",
+    "@babel/node": "^7.12.10",
+    "@babel/preset-env": "^7.12.10",
+    "mysql2": "^2.2.5",
+    "nodemon": "2.0.7",
+    "sequelize": "^6.6.2",
+    "sequelize-cli": "^6.2.0"
+  }
+}
