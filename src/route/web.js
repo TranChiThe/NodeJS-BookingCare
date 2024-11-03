@@ -106,6 +106,9 @@ let initWebRouter = (app) => {
     router.post('/api/update-clinic-information', clinicController.updateClinicInformation)
 
 
+    ///////
+
+
     return app.use('/', router);
 }
 
