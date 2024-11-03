@@ -189,31 +189,6 @@ let createBusySchedule = async (req, res) => {
     }
 }
 
-// const deleteOldSchedules = async () => {
-//     try {
-//         // Calculate the timestamp for six months ago
-//         const sixMonthsAgo = new Date();
-//         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-//         // Delete schedules older than six months
-//         const result = await db.Schedule.destroy({
-//             where: {
-//                 date: { [Op.lt]: sixMonthsAgo.getTime().toString() } // Assuming 'date' is stored as a string timestamp
-//             }
-//         });
-
-//         console.log(`${result} old schedule records deleted successfully.`);
-//     } catch (error) {
-//         console.error("Error deleting old schedules:", error);
-//     }
-// };
-
-// // Schedule the task to run daily at midnight
-// cron.schedule('0 0 * * *', () => {
-//     console.log("Running daily cleanup task to delete old schedule records...");
-//     deleteOldSchedules();
-// });
-
 const deleteOldSchedules = async () => {
     try {
         // Calculate the timestamp for 24 hours ago
