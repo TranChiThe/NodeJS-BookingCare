@@ -4,26 +4,22 @@ import { response } from "express";
 
 let handleGetAllUser = async (req, res) => {
     let id = req.query.id;
+    let { roleId, page, limit } = req.query
     if (!id) {
         return res.status(400).json({
             errCode: 0,
             errMessage: 'Missing required parameter',
-            users: []
+            data: []
         })
     }
     try {
-        let users = await userService.getAllUser(id);
-        return res.status(200).json({
-            errCode: 0,
-            errMessage: 'Oke',
-            users
-        })
-    } catch (error) {
-        console.error('Error in handleGetAllUser:', error);
+        let data = await userService.getAllUser(id, roleId, parseInt(page), parseInt(limit));
+        return res.status(200).json(data)
+    } catch (e) {
+        console.error('Error in doctorSearch controller:', e);
         return res.status(500).json({
-            errCode: 2,
-            errMessage: 'Internal Server Error',
-            users: []
+            errorCode: -1,
+            errMessage: 'Error from server...'
         });
     }
 
@@ -54,10 +50,6 @@ let handleDeleteUser = async (req, res) => {
 
 let getAllCode = async (req, res) => {
     try {
-        // setTimeout(async () => {
-        //     let data = await userService.getAllCodeService(req.query.type);
-        //     return res.status(200).json(data);
-        // }, 3000)
         let data = await userService.getAllCodeService(req.query.type);
         return res.status(200).json(data);
     } catch (e) {

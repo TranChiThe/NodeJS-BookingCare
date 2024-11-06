@@ -14,6 +14,7 @@ let buildUrlEmail = (token, patientId, date, timeType) => {
 const morningTimes = ['T1', 'T2', 'T3', 'T4'];
 const afternoonTimes = ['T5', 'T6', 'T7', 'T8'];
 
+
 let postBookAppointment = (data) => {
     return new Promise(async (resolve, reject) => {
         try {
@@ -22,118 +23,150 @@ let postBookAppointment = (data) => {
                     errCode: 1,
                     errMessage: 'Missing input parameter'
                 });
-            } else {
-                let [user] = await db.Patient.findOrCreate({
-                    where: { email: data.email },
-                    defaults: {
-                        email: data.email,
-                        firstName: data.firstName,
-                        lastName: data.lastName,
-                        birthday: data.birthday,
-                        address: data.address,
-                        phoneNumber: data.phoneNumber,
-                        gender: data.genders,
-                    }
+                return;
+            }
+
+            let [user] = await db.Patient.findOrCreate({
+                where: { email: data.email },
+                defaults: {
+                    email: data.email,
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                    birthday: data.birthday,
+                    address: data.address,
+                    phoneNumber: data.phoneNumber,
+                    gender: data.genders,
+                }
+            });
+
+            // Kiểm tra xem khung giờ đã đạt tối đa số lượng chưa
+            let schedule = await db.Schedule.findOne({
+                where: {
+                    doctorId: data.doctorId,
+                    date: data.date,
+                    timeType: data.timeType,
+                }
+            });
+
+            if (!schedule) {
+                resolve({
+                    errCode: 7,
+                    errMessage: 'Schedule not found'
                 });
-                // Kiểm tra lượt đặt lịch trong buổi sáng và buổi chiều
-                let existingMorningAppointment = morningTimes.includes(data.timeType)
-                    ? await db.Appointment.findOne({
-                        where: {
-                            patientId: user.id,
-                            date: data.date,
-                            timeType: morningTimes,
-                            statusId: 'S2',
-                        }
-                    })
-                    : null;
+                return;
+            }
 
-                let existingAfternoonAppointment = afternoonTimes.includes(data.timeType)
-                    ? await db.Appointment.findOne({
-                        where: {
-                            patientId: user.id,
-                            date: data.date,
-                            timeType: afternoonTimes,
-                            statusId: 'S2',
-                        }
-                    })
-                    : null;
+            // Kiểm tra số lượng lịch hẹn đã đặt (chỉ đếm các lịch hẹn đã xác nhận)
+            let confirmedAppointmentsCount = await db.Appointment.count({
+                where: {
+                    doctorId: data.doctorId,
+                    date: data.date,
+                    timeType: data.timeType,
+                    statusId: 'S2',
+                }
+            });
 
-                if (existingMorningAppointment) {
-                    resolve({
-                        errCode: 3,
-                        errMessage: 'You already have an appointment in the morning.'
-                    });
-                    return;
-                }
-                if (existingAfternoonAppointment) {
-                    resolve({
-                        errCode: 4,
-                        errMessage: 'You already have an appointment in the afternoon.'
-                    });
-                    return;
-                }
-                // Gửi email và tạo hoặc lấy thông tin bệnh nhân
-                let token = uuidv4();
-                let existsSendEmail = await db.Appointment.findOne({
-                    where: {
-                        doctorId: data.doctorId,
-                        patientId: user.id,
-                        date: data.date,
-                        timeType: data.timeType
-                    }
-                })
-                if (!existsSendEmail) {
-                    await emailService.sendSimpleEmail({
-                        recordId: data.scheduleTime,
-                        receiverEmail: data.email,
-                        time: data.timeString,
-                        patientName: data.firstName,
-                        doctorName: data.doctorName,
-                        language: data.language,
-                        redirectLink: buildUrlEmail(token, user.id, data.date, data.timeType),
-                    });
-                }
+            if (confirmedAppointmentsCount >= schedule.maxNumber) {
+                resolve({
+                    errCode: 6,
+                    errMessage: 'This time slot has reached the maximum number of confirmed appointments for this doctor.'
+                });
+                return;
+            }
 
-                let existingAppointment = await db.Appointment.findOne({
+            // Kiểm tra lượt đặt lịch trong buổi sáng và buổi chiều
+            let existingMorningAppointment = morningTimes.includes(data.timeType)
+                ? await db.Appointment.findOne({
                     where: {
                         patientId: user.id,
-                        timeType: data.timeType,
                         date: data.date,
+                        timeType: morningTimes,
                         statusId: 'S2',
                     }
-                });
+                })
+                : null;
 
-                if (existingAppointment) {
-                    resolve({
-                        errCode: 2,
-                        errMessage: 'You have an appointment with this doctor at this time slot'
-                    });
-                } else {
-                    await db.Appointment.findOrCreate({
-                        where: {
-                            patientId: user.id,
-                            date: data.date,
-                            timeType: data.timeType,
-                            statusId: 'S1',
-                        },
-                        defaults: {
-                            fullName: data.fullName,
-                            phoneNumber: data.relativesPhoneNumber,
-                            statusId: 'S1',
-                            doctorId: data.doctorId,
-                            patientId: user.id,
-                            date: data.date,
-                            recordId: data.scheduleTime,
-                            scheduleTime: data.scheduleTime,
-                            timeType: data.timeType,
-                            token: token,
-                        }
-                    })
-                    resolve({
-                        errCode: 0,
-                        errMessage: 'Appointment booked successfully'
-                    });
+            let existingAfternoonAppointment = afternoonTimes.includes(data.timeType)
+                ? await db.Appointment.findOne({
+                    where: {
+                        patientId: user.id,
+                        date: data.date,
+                        timeType: afternoonTimes,
+                        statusId: 'S2',
+                    }
+                })
+                : null;
+
+            if (existingMorningAppointment) {
+                resolve({
+                    errCode: 3,
+                    errMessage: 'You already have a confirmed appointment in the morning.'
+                });
+                return;
+            }
+            if (existingAfternoonAppointment) {
+                resolve({
+                    errCode: 4,
+                    errMessage: 'You already have a confirmed appointment in the afternoon.'
+                });
+                return;
+            }
+
+            // Gửi email và tạo hoặc lấy thông tin bệnh nhân
+            let token = uuidv4();
+            let existsSendEmail = await db.Appointment.findOne({
+                where: {
+                    doctorId: data.doctorId,
+                    patientId: user.id,
+                    date: data.date,
+                    timeType: data.timeType
                 }
+            })
+            if (!existsSendEmail) {
+                await emailService.sendSimpleEmail({
+                    recordId: data.scheduleTime,
+                    receiverEmail: data.email,
+                    time: data.timeString,
+                    patientName: data.firstName,
+                    doctorName: data.doctorName,
+                    language: data.language,
+                    redirectLink: buildUrlEmail(token, user.id, data.date, data.timeType),
+                });
+            }
+
+            // Tạo lịch hẹn mới với trạng thái S1 (chưa xác nhận)
+            let [appointment, created] = await db.Appointment.findOrCreate({
+                where: {
+                    patientId: user.id,
+                    date: data.date,
+                    timeType: data.timeType,
+                    doctorId: data.doctorId,
+                    statusId: 'S1',
+                },
+                defaults: {
+                    fullName: data.fullName,
+                    phoneNumber: data.relativesPhoneNumber,
+                    statusId: 'S1',
+                    doctorId: data.doctorId,
+                    patientId: user.id,
+                    date: data.date,
+                    recordId: data.scheduleTime,
+                    scheduleTime: data.scheduleTime,
+                    timeType: data.timeType,
+                    token: token,
+                }
+            });
+
+            if (created) {
+                resolve({
+                    errCode: 0,
+                    errMessage: 'Appointment created successfully. Please confirm your appointment via the email sent.'
+                });
+            } else {
+                resolve({
+                    errCode: 2,
+                    errMessage: 'You have already created an appointment with this doctor at this time slot.'
+                });
             }
         } catch (e) {
             reject(e);
@@ -144,59 +177,96 @@ let postBookAppointment = (data) => {
 let postVerifyBookAppointment = (data) => {
     return new Promise(async (resolve, reject) => {
         try {
-            // if (!data.token || !data.doctorId) {
             if (!data.token) {
                 resolve({
                     errCode: 1,
-                    errMessage: 'Missing requires parameter'
-                })
-            } else {
-                let existsAppointment = await db.Appointment.findOne({
-                    where: {
-                        patientId: data.patientId,
-                        date: data.date,
-                        timeType: data.timeType,
-                        statusId: 'S2'
-                    }
-                })
+                    errMessage: 'Missing required parameter'
+                });
+                return;
+            }
 
-                if (existsAppointment) {
-                    resolve({
-                        errCode: 2,
-                        errMessage: 'Your appointment has been confirmed or does not exist in the system, please check again!'
-                    })
-                } else {
-                    let appointment = await db.Appointment.findOne({
-                        where: {
-                            // doctorId: data.doctorId,
-                            patientId: data.patientId,
-                            date: data.date,
-                            timeType: data.timeType,
-                            token: data.token,
-                            statusId: 'S1',
-                        },
-                        raw: false
-                    })
-                    if (appointment) {
-                        appointment.statusId = 'S2';
-                        await appointment.save();
-                        resolve({
-                            errCode: 0,
-                            errMessage: 'Update appointment succeed!'
-                        })
-                    } else {
-                        resolve({
-                            errCode: 2,
-                            errMessage: 'Your appointment has been confirmed or does not exist in the system, please check again!'
-                        })
-                    }
+            // Kiểm tra xem lịch hẹn đã được xác nhận hay chưa
+            let existsAppointment = await db.Appointment.findOne({
+                where: {
+                    patientId: data.patientId,
+                    date: data.date,
+                    timeType: data.timeType,
+                    statusId: 'S2'
                 }
+            });
+
+            if (existsAppointment) {
+                resolve({
+                    errCode: 2,
+                    errMessage: 'Your appointment has been confirmed or does not exist in the system, please check again!'
+                });
+                return;
+            }
+
+            // Tìm lịch hẹn với trạng thái chưa xác nhận
+            let appointment = await db.Appointment.findOne({
+                where: {
+                    patientId: data.patientId,
+                    date: data.date,
+                    timeType: data.timeType,
+                    token: data.token,
+                    statusId: 'S1'
+                },
+                raw: false
+            });
+
+            if (appointment) {
+                // Tìm schedule tương ứng để kiểm tra giới hạn số lượng
+                let schedule = await db.Schedule.findOne({
+                    where: {
+                        doctorId: appointment.doctorId,
+                        date: data.date,
+                        timeType: data.timeType
+                    },
+                    raw: false
+                });
+
+                if (!schedule) {
+                    resolve({
+                        errCode: 3,
+                        errMessage: 'Schedule not found'
+                    });
+                    return;
+                }
+
+                // Kiểm tra xem số lượng lịch hẹn đã đạt giới hạn chưa
+                if (schedule.currentNumber >= schedule.maxNumber) {
+                    resolve({
+                        errCode: 4,
+                        errMessage: 'This time slot has reached the maximum number of confirmed appointments for this doctor.'
+                    });
+                    return;
+                }
+
+                // Xác nhận lịch hẹn và cập nhật số lượng
+                appointment.statusId = 'S2';
+                await appointment.save();
+
+                // Tăng currentNumber trong Schedule
+                schedule.currentNumber += 1;
+                await schedule.save();
+
+                resolve({
+                    errCode: 0,
+                    errMessage: 'Update appointment succeeded!'
+                });
+            } else {
+                resolve({
+                    errCode: 2,
+                    errMessage: 'Your appointment has been confirmed or does not exist in the system, please check again!'
+                });
             }
         } catch (e) {
             reject(e);
         }
-    })
-}
+    });
+};
+
 
 let HomeSearch = (type, searchTerm) => {
     return new Promise(async (resolve, reject) => {

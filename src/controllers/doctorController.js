@@ -124,7 +124,8 @@ let getAllDoctorSchedule = async (req, res) => {
 
 let deleteDoctorSchedule = async (req, res) => {
     try {
-        let info = await doctorService.deleteDoctorSchedule(req.query.id)
+        let { timeType, status, date } = req.query
+        let info = await doctorService.deleteDoctorSchedule(timeType, status, date)
         return res.status(200).json(info);
     } catch (e) {
         console.error(e);
@@ -134,19 +135,6 @@ let deleteDoctorSchedule = async (req, res) => {
         })
     }
 }
-
-// let doctorSearch = async (req, res) => {
-//     try {
-//         let response = await doctorService.doctorSearch(req.query.searchTerm, req.query.specialtyId, req.query.clinicId);
-//         return res.status(200).json(response);
-//     } catch (e) {
-//         console.error('Error in doctorSearch controller:', e);
-//         return res.status(500).json({
-//             errorCode: -1,
-//             errMessage: 'Error from server...'
-//         })
-//     }
-// }
 
 let doctorSearch = async (req, res) => {
     try {
@@ -189,32 +177,18 @@ let createBusySchedule = async (req, res) => {
     }
 }
 
-
-const deleteOldSchedules = async () => {
+let getScheduleDoctorForWeek = async (req, res) => {
     try {
-        // Calculate the timestamp for 24 hours ago
-        const oneDayAgo = new Date();
-        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-
-        // Delete schedules older than 24 hours
-        const result = await db.Schedule.destroy({
-            where: {
-                date: { [Op.lt]: oneDayAgo.getTime().toString() } // Assuming 'date' is stored as a string timestamp
-            }
-        });
-
-        console.log(`${result} old schedule records deleted successfully.`);
-    } catch (error) {
-        console.error("Error deleting old schedules:", error);
+        let infor = await doctorService.getScheduleDoctorForWeek(req.query.doctorId, req.query.weekNumber)
+        return res.status(200).json(infor);
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({
+            errCode: -1,
+            errMessage: 'Error from server...'
+        })
     }
-};
-
-// Schedule the task to run daily at midnight
-cron.schedule('0 0 * * *', () => {
-    console.log("Running daily cleanup task to delete old schedule records...");
-    deleteOldSchedules();
-});
-
+}
 
 module.exports = {
     getDoctorHome,
@@ -229,5 +203,6 @@ module.exports = {
     deleteDoctorSchedule,
     doctorSearch,
     getTotalDoctor,
-    createBusySchedule
+    createBusySchedule,
+    getScheduleDoctorForWeek
 }

@@ -84,14 +84,15 @@ let initWebRouter = (app) => {
     router.get('/api/get-profile-doctor-by-id', doctorController.getProfileDoctorById);
     router.get('/api/get-all-doctor-schedule', doctorController.getAllDoctorSchedule);
     router.delete('/api/delete-doctor-schedule', doctorController.deleteDoctorSchedule);
-    router.post('/api/doctor-search', doctorController.doctorSearch);
+    router.get('/api/doctor-search', doctorController.doctorSearch);
     router.post('/api/get-total-doctor', doctorController.getTotalDoctor);
     router.post('/api/busy-schedule', doctorController.createBusySchedule);
+    router.get('/api/get-schedule-for-week', doctorController.getScheduleDoctorForWeek);
 
     //---------------------- API PATIENT ----------------------------\\
     router.post('/api/patient-book-appointment', patientController.postBookAppointment)
     router.post('/api/verify-book-appointment', patientController.postVerifyBookAppointment)
-    router.post('/api/home-search', patientController.HomeSearch)
+    router.get('/api/home-search', patientController.HomeSearch)
 
     //---------------------- API SPECIALTY ----------------------------\\
     router.post('/api/create-new-specialty', specialtyController.createSpecialty)

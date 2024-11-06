@@ -4,7 +4,6 @@ import { where, Op, sequelize } from 'sequelize';
 import dotenv from 'dotenv';
 dotenv.config();
 import _, { includes, reject } from 'lodash'
-import user from '../models/user';
 const MAX_NUMBER_SCHEDULE = process.env.MAX_NUMBER_SCHEDULE
 
 let getTopDoctorHome = (limitInput) => {
@@ -228,14 +227,19 @@ let bulkCreateSchedule = (data) => {
                     return a.timeType === b.timeType && +a.date === +b.date;
                 });
 
-                if (toCreate.length > 0) {
-                    await db.Schedule.bulkCreate(toCreate);
+                if (toCreate && toCreate.length <= 0) {
+                    resolve({
+                        errCode: 2,
+                        errMessage: "Calendar already exists"
+                    })
                 }
-
-                resolve({
-                    errCode: 0,
-                    errMessage: 'Schedule created successfully, ignoring busy times.'
-                });
+                else if (toCreate && toCreate.length > 0) {
+                    await db.Schedule.bulkCreate(toCreate);
+                    resolve({
+                        errCode: 0,
+                        errMessage: 'Schedule created successfully, ignoring busy times.'
+                    });
+                }
             }
         } catch (e) {
             reject(e);
@@ -380,164 +384,100 @@ let getProfileDoctorById = (inputId) => {
     })
 }
 
-let deleteDoctorSchedule = (inputId) => {
+let deleteDoctorSchedule = (timeType, status, date) => {
     return new Promise(async (resolve, reject) => {
         try {
-            if (!inputId) {
-                resolve({
+            // Ensure timeType, status, and date are valid
+            if (!timeType || !status || !date) {
+                reject({
                     errCode: 1,
-                    errMessage: 'Missing parameter!'
-                })
-            } else {
-                let appointment = await db.Schedule.findOne({
-                    where: { id: inputId }
-                })
+                    errMessage: 'Missing required parameters: timeType, status, or date!'
+                });
+                return;
+            }
+
+            // Convert date to timestamp (if necessary) for comparison
+            // const dateTimestamp = new Date(date).getTime();
+
+            let appointment;
+
+            // Check the status to determine whether we are deleting from the Schedule or BusySchedule table
+            if (status === 'busy') {
+                // Find the busy schedule record
+                appointment = await db.BusySchedule.findOne({
+                    where: {
+                        timeType: timeType,
+                        date: date
+                    }
+                });
+
+                // If the busy schedule doesn't exist
                 if (!appointment) {
                     resolve({
                         errCode: 1,
-                        errMessage: 'Appointment does not exist'
-                    })
-                } else {
-                    let data = await db.Schedule.destroy({
-                        where: { id: inputId }
-                    })
-                    resolve({
-                        errCode: 0,
-                        errMessage: 'Appointment has been deleted'
-                    })
+                        errMessage: 'Busy schedule does not exist'
+                    });
+                    return;
                 }
+
+                // Delete the busy schedule
+                await db.BusySchedule.destroy({
+                    where: {
+                        timeType: timeType,
+                        date: date
+                    }
+                });
+
+                resolve({
+                    errCode: 0,
+                    errMessage: 'Busy schedule has been deleted successfully'
+                });
+            } else if (status === 'available') {
+                // Find the working schedule record
+                appointment = await db.Schedule.findOne({
+                    where: {
+                        timeType: timeType,
+                        date: date
+                    }
+                });
+
+                // If the working schedule doesn't exist
+                if (!appointment) {
+                    resolve({
+                        errCode: 1,
+                        errMessage: 'Working schedule does not exist'
+                    });
+                    return;
+                }
+
+                // Delete the working schedule
+                await db.Schedule.destroy({
+                    where: {
+                        timeType: timeType,
+                        date: date
+                    }
+                });
+
+                resolve({
+                    errCode: 0,
+                    errMessage: 'Working schedule has been deleted successfully'
+                });
+            } else {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Invalid status provided!'
+                });
             }
         } catch (e) {
-            reject(e);
+            // Log error for debugging
+            console.error("Error deleting schedule:", e);
+            reject({
+                errCode: 500,
+                errMessage: 'Internal server error'
+            });
         }
-    })
-}
-
-// let doctorSearch = (searchTerm, specialtyId, clinicId) => {
-//     return new Promise(async (resolve, reject) => {
-//         try {
-//             let searchConditions = {};
-//             let users = [];
-//             if (searchTerm) {
-//                 let trimmedSearchTerm = searchTerm.trim();
-//                 let searchWords = trimmedSearchTerm.split(/\s+/);
-//                 searchConditions[Op.or] = [
-//                     { firstName: { [Op.like]: `%${searchTerm}%` } },
-//                     { lastName: { [Op.like]: `%${searchTerm}%` } },
-//                     db.sequelize.where(
-//                         db.sequelize.fn('CONCAT', db.sequelize.col('lastName'), ' ', db.sequelize.col('firstName')),
-//                         { [Op.like]: `%${searchTerm}%` }
-//                     ),
-//                     db.sequelize.where(
-//                         db.sequelize.fn('CONCAT', db.sequelize.col('firstName'), ' ', db.sequelize.col('lastName')),
-//                         { [Op.like]: `%${searchTerm}%` }
-//                     )
-//                 ];
-
-//             }
-//             let searchConditionDoctor = {};
-//             if (specialtyId) {
-//                 searchConditionDoctor.specialtyId = specialtyId;
-//             }
-//             if (clinicId) {
-//                 searchConditionDoctor.clinicId = clinicId;
-//             }
-//             users = await db.User.findAll({
-//                 where: {
-//                     roleId: 'R2',
-//                     ...searchConditions
-//                 },
-//                 limit: 5,
-//                 order: [['createdAt', 'DESC']],
-//                 attributes: {
-//                     exclude: ['password'],
-//                 },
-//                 include: [
-//                     { model: db.Allcode, as: 'positionData', attributes: ['valueEn', 'valueVi'] },
-//                     { model: db.Allcode, as: 'genderData', attributes: ['valueEn', 'valueVi'] },
-//                     {
-//                         model: db.Doctor_Infor,
-//                         where: searchConditionDoctor,
-//                         attributes: ['specialtyId', 'clinicId']
-//                     }
-//                 ],
-//                 raw: true,
-//                 nest: true,
-//             })
-//             resolve({
-//                 errCode: 0,
-//                 errMessage: 'Oke',
-//                 data: users,
-//             })
-//         } catch (e) {
-//             reject(e);
-//         }
-//     })
-// }
-
-// let doctorSearch = (searchTerm, specialtyId, clinicId, page = 1, limit = 5) => {
-//     return new Promise(async (resolve, reject) => {
-//         try {
-//             let offset = (page - 1) * limit;
-//             let searchConditions = {};
-//             let searchConditionDoctor = {};
-//             let users = [];
-//             if (searchTerm) {
-//                 searchConditions[Op.or] = [
-//                     { firstName: { [Op.like]: `%${searchTerm}%` } },
-//                     { lastName: { [Op.like]: `%${searchTerm}%` } },
-//                     db.sequelize.where(
-//                         db.sequelize.fn('CONCAT', db.sequelize.col('lastName'), ' ', db.sequelize.col('firstName')),
-//                         { [Op.like]: `%${searchTerm}%` }
-//                     ),
-//                     db.sequelize.where(
-//                         db.sequelize.fn('CONCAT', db.sequelize.col('firstName'), ' ', db.sequelize.col('lastName')),
-//                         { [Op.like]: `%${searchTerm}%` }
-//                     )
-//                 ];
-//             }
-//             if (specialtyId) {
-//                 searchConditionDoctor.specialtyId = specialtyId;
-//             }
-//             if (clinicId) {
-//                 searchConditionDoctor.clinicId = clinicId;
-//             }
-//             users = await db.User.findAndCountAll({
-//                 where: {
-//                     roleId: 'R2',
-//                     ...searchConditions
-//                 },
-//                 limit: limit,
-//                 offset: offset,
-//                 order: [['createdAt', 'DESC']],
-//                 attributes: {
-//                     exclude: ['password'],
-//                 },
-//                 include: [
-//                     { model: db.Allcode, as: 'positionData', attributes: ['valueEn', 'valueVi'] },
-//                     { model: db.Allcode, as: 'genderData', attributes: ['valueEn', 'valueVi'] },
-//                     {
-//                         model: db.Doctor_Infor,
-//                         where: searchConditionDoctor,
-//                         attributes: ['specialtyId', 'clinicId']
-//                     }
-//                 ],
-//                 raw: true,
-//                 nest: true,
-//             })
-//             resolve({
-//                 errCode: 0,
-//                 errMessage: 'Oke',
-//                 data: users.rows,
-//                 currentPage: page,
-//                 totalPages: Math.ceil(users.count / limit),
-//                 totalRecords: users.count,
-//             })
-//         } catch (e) {
-//             reject(e);
-//         }
-//     })
-// }
+    });
+};
 
 let doctorSearch = (searchTerm, specialtyId, clinicId, page = 1, limit = 5) => {
     return new Promise(async (resolve, reject) => {
@@ -574,12 +514,12 @@ let doctorSearch = (searchTerm, specialtyId, clinicId, page = 1, limit = 5) => {
                     roleId: 'R2',
                     ...searchConditions
                 },
-                limit: limit,
-                offset: offset,
                 order: [['createdAt', 'DESC']],
                 attributes: {
                     exclude: ['password'],
                 },
+                limit: limit,
+                offset: offset,
                 include: [
                     { model: db.Allcode, as: 'positionData', attributes: ['valueEn', 'valueVi'] },
                     { model: db.Allcode, as: 'genderData', attributes: ['valueEn', 'valueVi'] },
@@ -606,7 +546,6 @@ let doctorSearch = (searchTerm, specialtyId, clinicId, page = 1, limit = 5) => {
         }
     });
 };
-
 
 let getTotalDoctor = (year, week) => {
     return new Promise(async (resolve, reject) => {
@@ -676,7 +615,6 @@ let createBusySchedule = (data) => {
                         errMessage: 'Oke'
                     })
                 }
-
             }
 
         } catch (e) {
@@ -684,6 +622,63 @@ let createBusySchedule = (data) => {
         }
     })
 }
+
+let getScheduleDoctorForWeek = (doctorId, weekNumber) => {
+    const currentDate = new Date();
+    const startOfWeek = new Date();
+    startOfWeek.setHours(0, 0, 0, 0);
+    startOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + 1 + (weekNumber - 1) * 7);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    return new Promise(async (resolve, reject) => {
+        try {
+            // Lấy lịch bận trong tuần
+            let busySchedules = await db.BusySchedule.findAll({
+                where: {
+                    doctorId,
+                    date: {
+                        [db.Sequelize.Op.between]: [startOfWeek.getTime(), endOfWeek.getTime()]
+                    }
+                }
+            });
+
+            // Lấy lịch làm việc trong tuần
+            let workingSchedules = await db.Schedule.findAll({
+                where: {
+                    doctorId: doctorId,
+                    date: {
+                        [db.Sequelize.Op.between]: [startOfWeek.getTime(), endOfWeek.getTime()]
+                    }
+                }
+            });
+
+            const schedule = {};
+            for (let date = new Date(startOfWeek); date <= endOfWeek; date.setDate(date.getDate() + 1)) {
+                const formattedDate = date.getTime();
+                schedule[formattedDate] = {
+                    busy: busySchedules
+                        .filter(bs => parseInt(bs.date, 10) === formattedDate)
+                        .map(bs => bs.timeType),
+                    working: workingSchedules
+                        .filter(ws => parseInt(ws.date, 10) === formattedDate)
+                        .map(ws => ws.timeType)
+                };
+            }
+
+            resolve({
+                errCode: 0,
+                errMessage: 'Oke',
+                data: schedule
+            });
+        } catch (error) {
+            console.error('Error fetching schedule:', error);
+            reject(error);
+        }
+    });
+};
 
 module.exports = {
     getTopDoctorHome: getTopDoctorHome,
@@ -697,5 +692,6 @@ module.exports = {
     deleteDoctorSchedule: deleteDoctorSchedule,
     doctorSearch: doctorSearch,
     getTotalDoctor,
-    createBusySchedule
+    createBusySchedule,
+    getScheduleDoctorForWeek
 }
