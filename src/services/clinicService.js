@@ -162,10 +162,46 @@ let updateClinicInformation = (data) => {
     })
 
 }
+
+let clinicDelete = (clinicId) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!clinicId || clinicId === '') {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing input parameter'
+                })
+            } else {
+                let clinic = await db.Clinic.findOne({
+                    where: { id: clinicId }
+                })
+                if (clinic) {
+                    await db.Clinic.destroy({
+                        where: { id: clinicId }
+                    })
+                    resolve({
+                        errCode: 0,
+                        errMessage: "Oke",
+                    })
+                } else {
+                    resolve({
+                        errCode: 2,
+                        errMessage: "Clinic information not found",
+                    })
+                }
+            }
+
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
+
 module.exports = {
     createdClinic: createdClinic,
     getAllClinic: getAllClinic,
     getDetailClinicById: getDetailClinicById,
     updateClinicInformation,
+    clinicDelete
 }
 

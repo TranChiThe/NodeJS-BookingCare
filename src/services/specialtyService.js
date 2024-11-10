@@ -19,25 +19,23 @@ let createSpecialty = (data) => {
                     attributes: ['id', 'name'],
                     raw: false
                 })
-                if (specialtyInfo && data.actions === 'EDIT') {
-                    specialtyInfo.name = data.name;
-                    specialtyInfo.image = data.image;
-                    specialtyInfo.descriptionHTML = data.descriptionHTML;
-                    specialtyInfo.descriptionMarkdown = data.descriptionMarkdown;
-                    await specialtyInfo.save();
-                }
-                else if (!specialtyInfo && data.actions === 'CREATE') {
-                    let specialty = await db.Specialty.create({
+                if (specialtyInfo) {
+                    resolve({
+                        errCode: 2,
+                        errMessage: 'Specialty already exists in the system'
+                    })
+                } else {
+                    await db.Specialty.create({
                         name: data.name,
                         image: data.image,
                         descriptionHTML: data.descriptionHTML,
                         descriptionMarkdown: data.descriptionMarkdown
                     })
+                    resolve({
+                        errCode: 0,
+                        errMessage: 'Oke'
+                    })
                 }
-                resolve({
-                    errCode: 0,
-                    errMessage: 'Oke'
-                })
             }
         } catch (e) {
             reject(e);
@@ -45,6 +43,78 @@ let createSpecialty = (data) => {
     })
 }
 
+let updateSpecialty = (data) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!data.image || !data.descriptionHTML || !data.descriptionMarkdown) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing input parameter!'
+                })
+            }
+            else {
+                let specialtyInfo = await db.Specialty.findOne({
+                    where: { name: data.name },
+                    attributes: ['id', 'name'],
+                    raw: false
+                })
+                if (specialtyInfo) {
+                    // specialtyInfo.name = data.name;
+                    specialtyInfo.image = data.image;
+                    specialtyInfo.descriptionHTML = data.descriptionHTML;
+                    specialtyInfo.descriptionMarkdown = data.descriptionMarkdown;
+                    await specialtyInfo.save();
+                    resolve({
+                        errCode: 0,
+                        errMessage: 'Oke'
+                    })
+                } else {
+                    resolve({
+                        errCode: 2,
+                        errMessage: 'Specialty does not exist in the system'
+                    })
+                }
+            }
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
+
+let deleteSpecialty = (name) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!name) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing input parameter!'
+                })
+            }
+            else {
+                let specialtyInfo = await db.Specialty.findOne({
+                    where: { name: name },
+                    raw: false
+                })
+                if (specialtyInfo) {
+                    await db.Specialty.destroy({
+                        where: { name: name },
+                    })
+                    resolve({
+                        errCode: 0,
+                        errMessage: 'Oke'
+                    })
+                } else {
+                    resolve({
+                        errCode: 2,
+                        errMessage: 'Specialty does not exist in the system'
+                    })
+                }
+            }
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
 
 let getAllSpecialty = () => {
     return new Promise(async (resolve, reject) => {
@@ -163,4 +233,6 @@ module.exports = {
     getAllSpecialty,
     getSpecialtyById,
     getDetailSpecialtyById,
+    updateSpecialty,
+    deleteSpecialty
 }

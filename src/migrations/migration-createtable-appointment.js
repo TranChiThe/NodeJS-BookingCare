@@ -35,6 +35,12 @@ module.exports = {
             timeType: {
                 type: Sequelize.STRING
             },
+            appointmentFee: {
+                type: Sequelize.DECIMAL(10, 2)
+            },
+            reason: {
+                type: Sequelize.STRING
+            },
             token: {
                 type: Sequelize.STRING
             },

@@ -34,43 +34,57 @@ let getTopDoctorHome = (limitInput) => {
     })
 }
 
-let getAllDoctor = () => {
+let getAllDoctor = (specialtyId, clinicId) => {
     return new Promise(async (resolve, reject) => {
         try {
+            // Build the dynamic filter for Doctor_Infor
+            let doctorInforWhere = {};
+            if (specialtyId) doctorInforWhere.specialtyId = specialtyId;
+            if (clinicId) doctorInforWhere.clinicId = clinicId;
+
             let doctors = await db.User.findAll({
                 where: { roleId: 'R2' },
-                attributes: {
-                    exclude: ['password', 'image'],
-                },
-            })
+                attributes: { exclude: ['password', 'image'] },
+                include: [
+                    {
+                        model: db.Doctor_Infor,
+                        where: Object.keys(doctorInforWhere).length > 0 ? doctorInforWhere : undefined
+                    }
+                ],
+                raw: true,
+                nest: true
+            });
+
             resolve({
                 errCode: 0,
                 data: doctors
-            })
+            });
         } catch (e) {
             reject(e);
         }
-    })
+    });
 }
 
 let checkRequiredFields = (inputData) => {
-    let arrFields = ['doctorId', 'contentHTML', 'contentMarkDown', 'actions', 'selectedPrice',
+    let requiredFields = ['doctorId', 'contentHTML', 'contentMarkDown', 'selectedPrice',
         'selectedPayment', 'selectedProvince', 'selectedClinic', 'specialtyId'
-    ]
+    ];
     let isValid = true;
-    let element = '';
-    for (let i = 0; i < arrFields.length; i++) {
-        if (!inputData[arrFields[i]]) {
+    let missingField = '';
+
+    for (let field of requiredFields) {
+        if (inputData[field] == null || inputData[field] === '') {
             isValid = false;
-            element = arrFields[i];
+            missingField = field;
             break;
         }
     }
+
     return {
         isValid: isValid,
-        element: element
-    }
-}
+        missingField: missingField
+    };
+};
 
 let saveDetailInforDoctor = (inputData) => {
     return new Promise(async (resolve, reject) => {
@@ -79,46 +93,31 @@ let saveDetailInforDoctor = (inputData) => {
             if (checkObj.isValid === false) {
                 resolve({
                     errCode: 1,
-                    errMessage: `Missing parameter: ${checkObj.element}`
+                    errMessage: `Thiếu tham số: ${checkObj.missingField}`
                 })
             }
             else {
-                if (inputData.actions === "CREATE") {
+                let doctorMarkDown = await db.MarkDown.findOne({
+                    where: { doctorId: inputData.doctorId },
+                    raw: false,
+                })
+                let doctorInfo = await db.Doctor_Infor.findOne({
+                    where: { doctorId: inputData.doctorId },
+                    raw: false,
+                })
+
+                if ((doctorMarkDown && doctorInfo) || doctorMarkDown || doctorInfo) {
+                    resolve({
+                        errCode: 2,
+                        errMessage: `Doctor information already exists in the system!`
+                    })
+                } else {
                     await db.MarkDown.create({
                         contentHTML: inputData.contentHTML,
                         contentMarkDown: inputData.contentMarkDown,
                         description: inputData.description,
                         doctorId: inputData.doctorId,
                     })
-                } else if (inputData.actions === "EDIT") {
-                    let doctorMarkDown = await db.MarkDown.findOne({
-                        where: { doctorId: inputData.doctorId },
-                        raw: false,
-                    })
-                    if (doctorMarkDown) {
-                        doctorMarkDown.contentHTML = inputData.contentHTML;
-                        doctorMarkDown.contentMarkDown = inputData.contentMarkDown;
-                        doctorMarkDown.description = inputData.description;
-                        doctorMarkDown.updateAt = new Date();
-                        await doctorMarkDown.save()
-                    }
-                }
-                let doctorInfo = await db.Doctor_Infor.findOne({
-                    where: { doctorId: inputData.doctorId },
-                    raw: false,
-                })
-                if (doctorInfo) {
-                    // update
-                    doctorInfo.doctorId = inputData.doctorId;
-                    doctorInfo.priceId = inputData.selectedPrice;
-                    doctorInfo.paymentId = inputData.selectedPayment;
-                    doctorInfo.provinceId = inputData.selectedProvince;
-                    doctorInfo.specialtyId = inputData.selectedSpecialty;
-                    doctorInfo.clinicId = inputData.selectedClinic;
-                    doctorInfo.note = inputData.note;
-                    await doctorInfo.save();
-                } else {
-                    // create
                     await db.Doctor_Infor.create({
                         doctorId: inputData.doctorId,
                         priceId: inputData.selectedPrice,
@@ -128,12 +127,107 @@ let saveDetailInforDoctor = (inputData) => {
                         clinicId: inputData.selectedClinic,
                         note: inputData.note
                     })
-
+                    resolve({
+                        errCode: 0,
+                        errMessage: `Save detail info doctor succeed!`
+                    })
                 }
+            }
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
+
+let updateDetailInforDoctor = (inputData) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let checkObj = checkRequiredFields(inputData);
+            if (checkObj.isValid === false) {
                 resolve({
-                    errCode: 0,
-                    errMessage: `Save detail info doctor succeed!`
+                    errCode: 1,
+                    errMessage: `Thiếu tham số: ${checkObj.missingField}`
                 })
+            }
+            else {
+                let doctorMarkDown = await db.MarkDown.findOne({
+                    where: { doctorId: inputData.doctorId },
+                    raw: false,
+                })
+                let doctorInfo = await db.Doctor_Infor.findOne({
+                    where: { doctorId: inputData.doctorId },
+                    raw: false,
+                })
+                if (doctorMarkDown && doctorInfo) {
+                    doctorMarkDown.contentHTML = inputData.contentHTML;
+                    doctorMarkDown.contentMarkDown = inputData.contentMarkDown;
+                    doctorMarkDown.description = inputData.description;
+                    doctorMarkDown.updateAt = new Date();
+                    await doctorMarkDown.save()
+
+                    doctorInfo.doctorId = inputData.doctorId;
+                    doctorInfo.priceId = inputData.selectedPrice;
+                    doctorInfo.paymentId = inputData.selectedPayment;
+                    doctorInfo.provinceId = inputData.selectedProvince;
+                    doctorInfo.specialtyId = inputData.selectedSpecialty;
+                    doctorInfo.clinicId = inputData.selectedClinic;
+                    doctorInfo.note = inputData.note;
+                    await doctorInfo.save();
+                    resolve({
+                        errCode: 0,
+                        errMessage: `Save detail info doctor succeed!`
+                    })
+                } else {
+                    resolve({
+                        errCode: 2,
+                        errMessage: `Doctor information does not exist in the system!`
+                    })
+                }
+            }
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
+
+let deleteDetailInforDoctor = (doctorId) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!doctorId) {
+                resolve({
+                    errCode: 1,
+                    errMessage: `Missing input parameter`
+                })
+                return;
+            }
+            else {
+                let doctorMarkDown = await db.MarkDown.findOne({
+                    where: { doctorId: doctorId },
+                    raw: false,
+                })
+
+                let doctorInfo = await db.Doctor_Infor.findOne({
+                    where: { doctorId: doctorId },
+                    raw: false,
+                })
+                if (doctorInfo && doctorMarkDown) {
+                    await db.MarkDown.destroy({
+                        where: { doctorId: doctorId },
+                    })
+
+                    db.Doctor_Infor.destroy({
+                        where: { doctorId: doctorId },
+                    })
+                    resolve({
+                        errCode: 0,
+                        errMessage: `Save detail info doctor succeed!`
+                    })
+                } else {
+                    resolve({
+                        errCode: 2,
+                        errMessage: `Doctor information does not exist in the system!`
+                    })
+                }
             }
         } catch (e) {
             reject(e);
@@ -483,7 +577,10 @@ let doctorSearch = (searchTerm, specialtyId, clinicId, page = 1, limit = 5) => {
     return new Promise(async (resolve, reject) => {
         try {
             if (page < 1 || limit < 1) {
-                return reject({ errCode: 1, errMessage: 'Page and limit must be positive integers' });
+                return reject({
+                    errCode: 1,
+                    errMessage: 'Page and limit must be positive integers'
+                });
             }
 
             let offset = (page - 1) * limit;
@@ -680,6 +777,159 @@ let getScheduleDoctorForWeek = (doctorId, weekNumber) => {
     });
 };
 
+let getPatientAppointment = (doctorId, statusId, date, searchTerm, page = 1, limit = 5) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let searchConditions = {};
+            if (page < 1 || limit < 1) {
+                return reject({
+                    errCode: 1,
+                    errMessage: 'Page and limit must be positive integers'
+                });
+            }
+            const offset = (page - 1) * limit;
+            if (!doctorId || !statusId || !date) {
+                return resolve({
+                    errCode: 1,
+                    errMessage: 'Missing input parameter'
+                });
+            } else {
+                if (searchTerm) {
+                    searchConditions[Op.or] = [
+                        { firstName: { [Op.like]: `%${searchTerm}%` } },
+                        { lastName: { [Op.like]: `%${searchTerm}%` } },
+                        db.sequelize.where(
+                            db.sequelize.fn('CONCAT', db.sequelize.col('lastName'), ' ', db.sequelize.col('firstName')),
+                            { [Op.like]: `%${searchTerm}%` }
+                        ),
+                        db.sequelize.where(
+                            db.sequelize.fn('CONCAT', db.sequelize.col('firstName'), ' ', db.sequelize.col('lastName')),
+                            { [Op.like]: `%${searchTerm}%` }
+                        )
+                    ];
+                }
+
+                let appointment = await db.Appointment.findAndCountAll({
+                    where: {
+                        doctorId: doctorId,
+                        statusId: statusId,
+                        date: date
+                    },
+                    limit: parseInt(limit),
+                    offset: offset,
+                    order: [['date', 'DESC']],
+                    include: [
+                        { model: db.Allcode, as: 'statusData', attributes: ['valueEn', 'valueVi'] },
+                        { model: db.Allcode, as: 'timeTypeAppointment', attributes: ['valueEn', 'valueVi'] },
+                        {
+                            model: db.Patient,
+                            where: searchConditions,
+                            as: 'appointmentData'
+                        }
+                    ],
+                    raw: true,
+                    nest: true,
+                });
+
+                const totalPages = Math.ceil(appointment.count / limit);
+
+                resolve({
+                    errCode: 0,
+                    errMessage: 'Oke',
+                    data: appointment.rows,
+                    currentPage: parseInt(page),
+                    totalPages: totalPages,
+                    totalAppointments: appointment.count,
+                });
+            }
+        } catch (error) {
+            reject(error);
+        }
+    });
+};
+
+const postConfirmAppointment = async (id) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!id) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing input parameter'
+                })
+            }
+            const appointment = await db.Appointment.findByPk(id);
+
+            if (!appointment) {
+                return reject({
+                    errCode: 2,
+                    errMessage: 'Appointment not found'
+                });
+            }
+
+            if (appointment.statusId === 'S2') {
+                appointment.statusId = 'S3';
+            } else if (appointment.statusId === 'S3') {
+                appointment.statusId = 'S4';
+            } else {
+                return reject({
+                    errCode: 3,
+                    errMessage: 'Status update not allowed for this state'
+                });
+            }
+
+            await appointment.save();
+            resolve({
+                errCode: 0,
+                errMessage: 'Appointment status updated successfully',
+                appointment
+            });
+        } catch (e) {
+            console.error('Error updating appointment:', e);
+            reject(e);
+        }
+    });
+};
+
+const postCancelAppointment = async (id) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!id) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing input parameter'
+                })
+            }
+            const appointment = await db.Appointment.findByPk(id);
+
+            if (!appointment) {
+                return reject({
+                    errCode: 2,
+                    errMessage: 'Appointment not found'
+                });
+            }
+
+            if (appointment.statusId === 'S2') {
+                appointment.statusId = 'S5';
+            } else {
+                return reject({
+                    errCode: 3,
+                    errMessage: 'Status update not allowed for this state'
+                });
+            }
+            await appointment.save();
+            resolve({
+                errCode: 0,
+                errMessage: 'Appointment status updated successfully',
+                appointment
+            });
+        } catch (e) {
+            console.error('Error updating appointment:', e);
+            reject(e);
+        }
+    });
+};
+
+
 module.exports = {
     getTopDoctorHome: getTopDoctorHome,
     getAllDoctor: getAllDoctor,
@@ -693,5 +943,10 @@ module.exports = {
     doctorSearch: doctorSearch,
     getTotalDoctor,
     createBusySchedule,
-    getScheduleDoctorForWeek
+    getScheduleDoctorForWeek,
+    updateDetailInforDoctor,
+    deleteDetailInforDoctor,
+    getPatientAppointment,
+    postConfirmAppointment,
+    postCancelAppointment
 }

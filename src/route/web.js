@@ -65,6 +65,8 @@ let initWebRouter = (app) => {
     // ------------------------ API ADMIN ------------------------------\\
     router.get('/api/get-appointment-by-time', adminController.getAppointmentByTime)
     router.get('/api/get-count-patient-by-time', adminController.getCountPatientByTime)
+    router.get('/api/get-dashboard-info', adminController.getDashBoardInfo)
+
 
     // ------------------------ API USER ------------------------------\\
     router.get('/api/get-all-users', middlewareController.verifyTokenAdmin, userController.handleGetAllUser);
@@ -77,6 +79,8 @@ let initWebRouter = (app) => {
     router.get('/api/get-doctor-home', doctorController.getDoctorHome);
     router.get('/api/get-all-doctor', doctorController.getAllDoctor);
     router.post('/api/save-infor-doctor', doctorController.saveInforDoctor);
+    router.post('/api/update-infor-doctor', doctorController.updateInforDoctor);
+    router.delete('/api/delete-infor-doctor', doctorController.deleteInforDoctor);
     router.get('/api/get-detail-doctor-by-id', doctorController.getDetailDoctorById);
     router.post('/api/bulk-create-schedule', doctorController.bulkCreateSchedule);
     router.get('/api/get-schedule-doctor-by-date', doctorController.getScheduleDoctorByDate);
@@ -88,23 +92,34 @@ let initWebRouter = (app) => {
     router.post('/api/get-total-doctor', doctorController.getTotalDoctor);
     router.post('/api/busy-schedule', doctorController.createBusySchedule);
     router.get('/api/get-schedule-for-week', doctorController.getScheduleDoctorForWeek);
+    router.get('/api/get-patient-appointment', doctorController.getPatientAppointment);
+    router.put('/api/post-confirm-appointment', doctorController.postConfirmAppointment);
+    router.put('/api/post-cancel-appointment', doctorController.postCancelAppointment);
+
+
+
 
     //---------------------- API PATIENT ----------------------------\\
     router.post('/api/patient-book-appointment', patientController.postBookAppointment)
     router.post('/api/verify-book-appointment', patientController.postVerifyBookAppointment)
     router.get('/api/home-search', patientController.HomeSearch)
+    router.get('/api/get-all-patient-appointment', patientController.getAllPatientAppointment)
 
     //---------------------- API SPECIALTY ----------------------------\\
     router.post('/api/create-new-specialty', specialtyController.createSpecialty)
     router.get('/api/get-all-specialty', specialtyController.getAllSpecialty);
     router.get('/api/get-specialty-by-id', specialtyController.getSpecialtyById);
     router.get('/api/get-detail-specialty-by-id', specialtyController.getDetailSpecialtyById);
+    router.post('/api/update-specialty', specialtyController.updateSpecialty)
+    router.delete('/api/delete-specialty', specialtyController.deleteSpecialty)
 
     //---------------------- API CLINIC ----------------------------\\
     router.post('/api/create-new-clinic', clinicController.createdClinic)
     router.get('/api/get-all-clinic', clinicController.getAllClinic)
     router.get('/api/get-detail-clinic-by-id', clinicController.getDetailClinicById)
     router.post('/api/update-clinic-information', clinicController.updateClinicInformation)
+    router.delete('/api/clinic-delete', clinicController.clinicDelete)
+
 
 
     return app.use('/', router);

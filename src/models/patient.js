@@ -6,10 +6,8 @@ module.exports = (sequelize, DataTypes) => {
   class Patient extends Model {
     static associate(models) {
       // define association here
-      // Patient.belongsTo(models.Allcode, { foreignKey: 'positionId', targetKey: 'keyMap', as: 'positionData' })
-      // Patient.belongsTo(models.Allcode, { foreignKey: 'gender', targetKey: 'keyMap', as: 'genderData' })
-      // Patient.hasOne(models.MarkDown, { foreignKey: 'doctorId' })
-      // Patient.hasOne(models.Doctor_Infor, { foreignKey: 'doctorId' })
+      Patient.belongsTo(models.Allcode, { foreignKey: 'gender', targetKey: 'keyMap', as: 'genderPatient' })
+      Patient.hasMany(models.Appointment, { foreignKey: 'patientId', as: 'appointmentData' })
     }
   };
   Patient.init({

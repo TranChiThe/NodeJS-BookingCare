@@ -16,7 +16,7 @@ let sendSimpleEmail = async (dataSend) => {
     // async..await is not allowed in global scope, must use a wrapper
     // send mail with defined transport object
     let info = await transporter.sendMail({
-        from: '"HealthCareCanTho 👻" <healthcarecantho@gmail.com>', // sender address
+        from: '"HealthCareCanTho " <healthcarecantho@gmail.com>', // sender address
         to: dataSend.receiverEmail, // list of receivers
         subject: "Thông tin đặt lịch khám bệnh ✔", // Subject line
         html: getBodyHTMLEmail(dataSend)
@@ -36,7 +36,11 @@ let getBodyHTMLEmail = (dataSend) => {
         <div><b> Bác sĩ: ${dataSend.doctorName}</b></div>
         <p>Nếu các thôn tin trên là đúng sự thật, vui lòng click vào link bên dưới để xác nhận và hoàn tất thủ tục đặt lịch khám bệnh của bạn</p>
         <div>
-            <a href=${dataSend.redirectLink} target = "_blank">Click here</a>
+            <a href=${dataSend.redirectLink} target = "_blank">
+                <button style={{ color: 'white', padding: '5px 15px', background: '#007bff' }}>
+                    CLICK HERE
+                </button>
+            </a>
         </div>
         <div>Xin chân thành cảm ơn!</div>
     `
@@ -52,7 +56,11 @@ let getBodyHTMLEmail = (dataSend) => {
             <div><b> Doctor: ${dataSend.doctorName}</b></div>
             <p>If the above information is true, please click on the link below  to confirm and complete your medical appointment booking procedure.</p>
             <div>
-                <a href=${dataSend.redirectLink} target = "_blank">Click here</a>
+                <a href=${dataSend.redirectLink} target = "_blank">
+                    <button style={{ color: 'white', padding: '5px 15px', background: '#007bff' }}>
+                        CLICK HERE
+                    </button>
+                </a>
             </div>
             <div>Sincerely thank!</div>
         `
@@ -65,3 +73,4 @@ module.exports = {
     sendSimpleEmail: sendSimpleEmail,
     getBodyHTMLEmail: getBodyHTMLEmail
 }
+// 👻

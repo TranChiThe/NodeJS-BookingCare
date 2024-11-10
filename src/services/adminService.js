@@ -5,10 +5,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 import _, { includes, reject } from 'lodash'
 
-let getAppointmentByTime = (type, month, year) => {
+let getAppointmentByTime = (statusId, month, year) => {
     return new Promise(async (resolve, reject) => {
         const where = {};
-        if (!type) {
+        if (!statusId) {
             resolve({
                 errCode: 1,
                 errMessage: 'Missing input',
@@ -16,22 +16,26 @@ let getAppointmentByTime = (type, month, year) => {
         } else {
             if (year) {
                 where.createdAt = { [Op.gte]: new Date(year, 0, 1), [Op.lt]: new Date(year, 11, 31, 23, 59, 59) };
-                where.roleId = type
+                where.statusId = statusId
             }
             if (month && year) {
                 where.createdAt = {
                     [Op.gte]: new Date(year, month - 1, 1),
                     [Op.lt]: new Date(year, month, 1)
                 };
-                where.roleId = type
+                where.statusId = statusId
             }
-            where.roleId = type
+            where.statusId = statusId
             try {
-                const userCount = await db.User.count({ where });
+                const appointmentCount = await db.Appointment.count({ where });
+                const totalRevenue = await db.Appointment.sum('appointmentFee', { where });
                 resolve({
                     errCode: 0,
                     errMessage: 'Oke',
-                    data: userCount
+                    data: {
+                        appointmentCount,
+                        totalRevenue: totalRevenue || 0
+                    }
                 })
             } catch (error) {
                 console.error(error);
@@ -53,15 +57,13 @@ const countPatientsByWeek = async (year, month) => {
                 endOfWeek.setDate(0);
             }
 
-            const patientCounts = await db.User.count({
+            const patientCounts = await db.Appointment.count({
                 where: {
                     createdAt: {
                         [Op.between]: [startOfWeek, endOfWeek],
                     },
-                    roleId: 'R2'
                 },
             });
-
             return patientCounts
         })
     );
@@ -75,12 +77,11 @@ const countPatientsByMonth = async (year) => {
             const startOfMonth = new Date(year, month, 1);
             const endOfMonth = new Date(year, month + 1, 0); // Ngày cuối cùng của tháng
 
-            const patientCounts = await db.User.count({
+            const patientCounts = await db.Appointment.count({
                 where: {
                     createdAt: {
                         [Op.between]: [startOfMonth, endOfMonth],
                     },
-                    roleId: 'R2'
                 },
             });
             return patientCounts;
@@ -91,13 +92,12 @@ const countPatientsByMonth = async (year) => {
 
 // Hàm để tính số lượng bệnh nhân theo năm
 const countPatientsByYear = async (year) => {
-    const count = await db.User.count({
+    const count = await db.Appointment.count({
         where: {
             createdAt: {
                 [Op.gte]: new Date(year, 0, 1), // Ngày đầu tiên của năm
                 [Op.lt]: new Date(year + 1, 0, 1), // Ngày đầu tiên của năm sau
             },
-            roleId: 'R2'
         },
 
     });
@@ -159,8 +159,65 @@ let getCountPatientByTime = (type, month, year) => {
     });
 }
 
+let getDashBoardInfo = (type) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let userCount = 0, doctorCount = 0, patientCount = 0, appointmentCount = 0;
+            if (!type) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing input parameter'
+                });
+            } else {
+                if (type === 'user') {
+                    userCount = await db.User.count();
+                }
+                if (type === 'doctor') {
+                    doctorCount = await db.User.count({
+                        where: { roleId: 'R2' }
+                    });
+                }
+                if (type === 'patient') {
+                    patientCount = await db.Patient.count();
+                }
+                if (type === 'appointment') {
+                    appointmentCount = await db.Appointment.count();
+                }
+                resolve({
+                    errCode: 0,
+                    errMessage: 'Success',
+                    data: {
+                        userCount,
+                        doctorCount,
+                        patientCount,
+                        appointmentCount
+                    }
+                });
+            }
+        } catch (e) {
+            console.error('Error from server: ', e);
+            reject({
+                errCode: 2,
+                errMessage: 'Internal server error'
+            });
+        }
+    });
+};
+
+let postComment = () => {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+        } catch (e) {
+            console.log('Error from server: ', e);
+            reject(e);
+        }
+    })
+}
 
 module.exports = {
     getAppointmentByTime,
-    getCountPatientByTime
+    getCountPatientByTime,
+    getDashBoardInfo,
+    postComment
 }

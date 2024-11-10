@@ -153,6 +153,8 @@ let postBookAppointment = (data) => {
                     recordId: data.scheduleTime,
                     scheduleTime: data.scheduleTime,
                     timeType: data.timeType,
+                    appointmentFee: data.appointmentFee,
+                    reason: data.reason,
                     token: token,
                 }
             });
@@ -266,7 +268,6 @@ let postVerifyBookAppointment = (data) => {
         }
     });
 };
-
 
 let HomeSearch = (type, searchTerm) => {
     return new Promise(async (resolve, reject) => {
@@ -412,10 +413,73 @@ let HomeSearch = (type, searchTerm) => {
     });
 };
 
+let getAllPatientAppointment = (email, recordId) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!email || !recordId) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing input parameter!'
+                })
+            } else {
+                let user = await db.Patient.findOne({
+                    where: { email: email }
+                })
+                let record = await db.Appointment.findOne({
+                    where: { recordId: recordId }
+                })
+                if (!user || !record) {
+                    resolve({
+                        errCode: 2,
+                        errMessage: 'User not found'
+                    })
 
+                } else {
+                    let appointment = await db.Appointment.findAll({
+                        where: {
+                            recordId: recordId
+                        },
+                        include: [
+                            { model: db.Allcode, as: 'statusData', attributes: ['valueEn', 'valueVi'] },
+                            { model: db.Allcode, as: 'timeTypeAppointment', attributes: ['valueEn', 'valueVi'] },
+                            {
+                                model: db.Patient,
+                                where: { email: email },
+                                as: 'appointmentData'
+                            },
+                            {
+                                model: db.User, as: 'doctorAppoitmentData',
+                                attributes: ['id', 'email', 'firstName', 'lastName', 'phoneNumber',]
+                            }
+                        ],
+                        raw: true,
+                        nest: true,
+                    })
+                    if (appointment) {
+                        resolve({
+                            errCode: 0,
+                            errMessage: 'Oke',
+                            appointment
+                        })
+                    } else {
+                        resolve({
+                            errCode: 3,
+                            errMessage: 'Not found',
+                        })
+                    }
+
+                }
+            }
+        } catch (e) {
+            console.error('Error from server...', e);
+            reject(e);
+        }
+    })
+}
 module.exports = {
     postBookAppointment,
     buildUrlEmail,
     postVerifyBookAppointment,
     HomeSearch,
+    getAllPatientAppointment
 }
