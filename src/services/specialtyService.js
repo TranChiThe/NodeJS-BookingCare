@@ -251,7 +251,7 @@ let getDetailSpecialtyById = (inputId, location) => {
                     where: {
                         name: inputId
                     },
-                    attributes: ['name', 'descriptionHTML', 'descriptionMarkdown', 'image'],
+                    attributes: ['name', 'descriptionHTML', 'descriptionMarkdown', 'image', 'descriptionHTMLEn', 'descriptionMarkdownEn'],
                     include: [
                         { model: db.Allcode, as: 'specialtyData', attributes: ['valueVi', 'valueEn'] }
                     ],

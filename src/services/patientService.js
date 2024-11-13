@@ -281,7 +281,9 @@ let HomeSearch = (type, searchTerm) => {
             switch (type) {
                 case 'FLT1':
                     // Tìm kiếm cho FLT1 (Clinic, Specialty, Doctor)
-                    searchCondition.clinic = likeSearch('name');
+                    searchCondition.clinic = {
+                        [Op.or]: [likeSearch('valueEn'), likeSearch('valueVi')]
+                    };
                     searchCondition.specialty = {
                         [Op.or]: [likeSearch('valueEn'), likeSearch('valueVi')]
                     };
@@ -302,8 +304,13 @@ let HomeSearch = (type, searchTerm) => {
 
                     // Tìm Clinic
                     data.dataClinic = await db.Clinic.findAll({
-                        where: searchCondition.clinic,
-                        limit: 5
+                        limit: 5,
+                        include: [{
+                            model: db.Allcode,
+                            as: 'clinicData',
+                            where: searchCondition.clinic,
+                            attributes: ['valueEn', 'valueVi']
+                        }]
                     });
 
                     // Tìm Specialty
@@ -342,8 +349,13 @@ let HomeSearch = (type, searchTerm) => {
                 case 'FLT2':
                     // Tìm kiếm Clinic
                     data.dataClinic = await db.Clinic.findAll({
-                        where: likeSearch('name'),
                         limit: 5,
+                        include: [{
+                            model: db.Allcode,
+                            as: 'clinicData',
+                            where: searchCondition.clinic,
+                            attributes: ['valueEn', 'valueVi']
+                        }]
                         // attributes: 
                     });
                     break;

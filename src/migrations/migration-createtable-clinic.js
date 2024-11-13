@@ -36,9 +36,6 @@ module.exports = {
                 type: Sequelize.TEXT
             },
             //
-            nameEn: {
-                type: Sequelize.STRING
-            },
             addressEn: {
                 type: Sequelize.STRING
             },

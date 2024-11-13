@@ -1,8 +1,9 @@
+import { raw } from 'body-parser';
 import db from '../models/index';
 import dotenv from 'dotenv';
 import { name } from 'ejs';
 dotenv.config();
-import _, { reject } from 'lodash'
+import _, { includes, reject } from 'lodash'
 import { where } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -60,7 +61,7 @@ let createdClinic = (data) => {
                     }
                 }
             } else if (data.language === 'en') {
-                if (!data.nameEn || !data.image || !data.addressEn ||
+                if (!data.image || !data.addressEn ||
                     !data.introductionHTMLEn || !data.introductionMarkdownEn ||
                     !data.proStrengthHTMLEn || !data.proStrengthMarkdownEn ||
                     !data.equipmentHTMLEn || !data.equipmentMarkdownEn
@@ -71,12 +72,10 @@ let createdClinic = (data) => {
                     })
                 } else {
                     let clinic = await db.Clinic.findOne({
-                        where: { id: data.id },
+                        where: { name: data.name },
                         raw: false
                     })
                     if (clinic) {
-                        clinic.id = data.id;
-                        clinic.nameEn = data.nameEn;
                         clinic.image = data.image;
                         clinic.addressEn = data.addressEn;
                         clinic.introductionHTMLEn = data.introductionHTMLEn;
@@ -111,6 +110,11 @@ let getAllClinic = () => {
     return new Promise(async (resolve, reject) => {
         try {
             let data = await db.Clinic.findAll({
+                include: [
+                    { model: db.Allcode, as: 'clinicData', attributes: ['valueVi', 'valueEn'] }
+                ],
+                raw: true,
+                nest: true,
             })
             if (data && data.length > 0) {
                 data.map(item => {
@@ -129,10 +133,10 @@ let getAllClinic = () => {
     })
 }
 
-let getDetailClinicById = (inputId) => {
+let getDetailClinicById = (name) => {
     return new Promise(async (resolve, reject) => {
         try {
-            if (!inputId) {
+            if (!name) {
                 resolve({
                     errCode: 1,
                     errMessage: 'Missing parameter'
@@ -141,15 +145,20 @@ let getDetailClinicById = (inputId) => {
             else {
                 let data = await db.Clinic.findOne({
                     where: {
-                        id: inputId
+                        name: name
                     },
-                    raw: true
+                    raw: true,
+                    include: [
+                        { model: db.Allcode, as: 'clinicData', attributes: ['valueEn', 'valueVi'] },
+                    ],
+                    raw: true,
+                    nest: true,
                 })
                 if (data) {
                     let doctorClinic = [];
                     doctorClinic = await db.Doctor_Infor.findAll({
                         where: {
-                            clinicId: inputId
+                            clinicId: name
                         },
                         attributes: ['doctorId', 'provinceId'],
                         raw: true,
@@ -173,10 +182,10 @@ let updateClinicInformation = (data) => {
     return new Promise(async (resolve, reject) => {
         try {
             let clinic = await db.Clinic.findOne({
-                where: { id: data.id }
+                where: { name: data.name }
             })
             if (data.language === 'vi') {
-                if (!data.id || !data.name || !data.image || !data.address ||
+                if (!data.name || !data.image || !data.address ||
                     !data.introductionHTML || !data.introductionMarkdown ||
                     !data.proStrengthHTML || !data.proStrengthMarkdown ||
                     !data.equipmentHTML || !data.equipmentMarkdown) {
@@ -186,7 +195,6 @@ let updateClinicInformation = (data) => {
                     })
                 } else {
                     if (clinic) {
-                        clinic.id = data.id;
                         clinic.name = data.name;
                         clinic.image = data.image;
                         clinic.address = data.address;
@@ -209,7 +217,7 @@ let updateClinicInformation = (data) => {
                     }
                 }
             } else if (data.language === 'en') {
-                if (!data.id || !data.nameEn || !data.image || !data.addressEn ||
+                if (!data.image || !data.addressEn ||
                     !data.introductionHTMLEn || !data.introductionMarkdownEn ||
                     !data.proStrengthHTMLEn || !data.proStrengthMarkdownEn ||
                     !data.equipmentHTMLEn || !data.equipmentMarkdownEn) {
@@ -219,8 +227,6 @@ let updateClinicInformation = (data) => {
                     })
                 } else {
                     if (clinic) {
-                        clinic.id = data.id;
-                        clinic.nameEn = data.nameEn;
                         clinic.image = data.image;
                         clinic.addressEn = data.addressEn;
                         clinic.introductionHTMLEn = data.introductionHTMLEn;
@@ -249,21 +255,21 @@ let updateClinicInformation = (data) => {
 
 }
 
-let clinicDelete = (clinicId) => {
+let clinicDelete = (name) => {
     return new Promise(async (resolve, reject) => {
         try {
-            if (!clinicId || clinicId === '') {
+            if (!name || name === '') {
                 resolve({
                     errCode: 1,
                     errMessage: 'Missing input parameter'
                 })
             } else {
                 let clinic = await db.Clinic.findOne({
-                    where: { id: clinicId }
+                    where: { name: name }
                 })
                 if (clinic) {
                     await db.Clinic.destroy({
-                        where: { id: clinicId }
+                        where: { name: name }
                     })
                     resolve({
                         errCode: 0,

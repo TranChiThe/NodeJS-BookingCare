@@ -333,10 +333,6 @@ let getDetailDoctorById = (inputId) => {
                         exclude: ['password'],
                     },
                     include: [
-                        {
-                            model: db.MarkDown,
-                            attributes: ['description', 'contentHTML', 'contentMarkDown']
-                        },
                         { model: db.Allcode, as: 'positionData', attributes: ['valueEn', 'valueVi'] },
                         {
                             model: db.Doctor_Infor,
@@ -489,8 +485,8 @@ let getExtraInfoDoctorById = (doctorId) => {
                         { model: db.Allcode, as: 'priceTypeData', attributes: ['valueEn', 'valueVi'] },
                         { model: db.Allcode, as: 'paymentTypeData', attributes: ['valueEn', 'valueVi'] },
                         { model: db.Allcode, as: 'provinceTypeData', attributes: ['valueEn', 'valueVi'] },
-                        { model: db.Clinic, attributes: ['name', 'address'] },
-
+                        { model: db.Allcode, as: 'clinicTypeData', attributes: ['valueEn', 'valueVi'] },
+                        { model: db.Clinic, attributes: ['address', 'addressEn'] },
                     ],
                     raw: false,
                     nest: true,
@@ -524,10 +520,6 @@ let getProfileDoctorById = (inputId) => {
                         exclude: ['password'],
                     },
                     include: [
-                        {
-                            model: db.MarkDown,
-                            attributes: ['description', 'contentHTML', 'contentMarkDown']
-                        },
                         { model: db.Allcode, as: 'positionData', attributes: ['valueEn', 'valueVi'] },
                         {
                             model: db.Doctor_Infor,

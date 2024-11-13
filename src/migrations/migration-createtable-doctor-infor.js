@@ -19,7 +19,7 @@ module.exports = {
                 type: Sequelize.STRING
             },
             clinicId: {
-                type: Sequelize.INTEGER
+                type: Sequelize.STRING
             },
             priceId: {
                 allowNull: false,
