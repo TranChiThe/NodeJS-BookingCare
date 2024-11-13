@@ -7,36 +7,79 @@ import _, { defaults, first, flatMap, includes, reject } from 'lodash'
 let createSpecialty = (data) => {
     return new Promise(async (resolve, reject) => {
         try {
-            if (!data.name || !data.image || !data.descriptionHTML || !data.descriptionMarkdown) {
-                resolve({
-                    errCode: 1,
-                    errMessage: 'Missing input parameter!'
-                })
-            }
-            else {
-                let specialtyInfo = await db.Specialty.findOne({
-                    where: { name: data.name },
-                    attributes: ['id', 'name'],
-                    raw: false
-                })
-                if (specialtyInfo) {
+            if (data.language === 'vi') {
+                if (!data.name || !data.image ||
+                    (data.language === 'vi' && (!data.descriptionHTML || !data.descriptionMarkdown))) {
                     resolve({
-                        errCode: 2,
-                        errMessage: 'Specialty already exists in the system'
-                    })
-                } else {
-                    await db.Specialty.create({
-                        name: data.name,
-                        image: data.image,
-                        descriptionHTML: data.descriptionHTML,
-                        descriptionMarkdown: data.descriptionMarkdown
-                    })
-                    resolve({
-                        errCode: 0,
-                        errMessage: 'Oke'
+                        errCode: 1,
+                        errMessage: 'Missing input parameter!'
                     })
                 }
+                else {
+                    let specialtyInfo = await db.Specialty.findOne({
+                        where: { name: data.name },
+                        attributes: ['id', 'name'],
+                        raw: false
+                    })
+                    if (specialtyInfo) {
+                        resolve({
+                            errCode: 2,
+                            errMessage: 'Specialty already exists in the system'
+                        })
+                    } else {
+                        const specialtyData = {
+                            name: data.name,
+                            image: data.image,
+                            doctorNumber: data.doctorNumber || 0
+                        };
+                        if (data.language === 'vi') {
+                            specialtyData.descriptionHTML = data.descriptionHTML;
+                            specialtyData.descriptionMarkdown = data.descriptionMarkdown;
+                            specialtyData.descriptionHTMLEn = '';
+                            specialtyData.descriptionMarkdownEn = '';
+                        } else if (data.language === 'en') {
+                            specialtyData.descriptionHTMLEn = '';
+                            specialtyData.descriptionMarkdownEn = '';
+                        }
+                        await db.Specialty.create(specialtyData);
+                        resolve({
+                            errCode: 0,
+                            errMessage: 'Oke'
+                        })
+                    }
+                }
+            } else if (data.language === 'en') {
+                if (!data.name || !data.image ||
+                    (data.language === 'en' && (!data.descriptionHTMLEn || !data.descriptionMarkdownEn))) {
+                    resolve({
+                        errCode: 1,
+                        errMessage: 'Missing input parameter!'
+                    })
+                }
+                else {
+                    let specialtyInfo = await db.Specialty.findOne({
+                        where: { name: data.name },
+                        attributes: ['id', 'name'],
+                        raw: false
+                    })
+                    if (specialtyInfo) {
+                        specialtyInfo.image = data.image;
+                        specialtyInfo.descriptionHTMLEn = data.descriptionHTMLEn;
+                        specialtyInfo.descriptionMarkdownEn = data.descriptionMarkdownEn;
+                        await specialtyInfo.save();
+                        resolve({
+                            errCode: 0,
+                            errMessage: 'Oke'
+                        })
+                    } else {
+                        resolve({
+                            errCode: 3,
+                            errMessage: 'Specialty does not exist in the system'
+                        })
+                    }
+                }
             }
+
         } catch (e) {
             reject(e);
         }
@@ -46,33 +89,56 @@ let createSpecialty = (data) => {
 let updateSpecialty = (data) => {
     return new Promise(async (resolve, reject) => {
         try {
-            if (!data.image || !data.descriptionHTML || !data.descriptionMarkdown) {
-                resolve({
-                    errCode: 1,
-                    errMessage: 'Missing input parameter!'
-                })
-            }
-            else {
-                let specialtyInfo = await db.Specialty.findOne({
-                    where: { name: data.name },
-                    attributes: ['id', 'name'],
-                    raw: false
-                })
-                if (specialtyInfo) {
-                    // specialtyInfo.name = data.name;
-                    specialtyInfo.image = data.image;
-                    specialtyInfo.descriptionHTML = data.descriptionHTML;
-                    specialtyInfo.descriptionMarkdown = data.descriptionMarkdown;
-                    await specialtyInfo.save();
+            let specialtyInfo = await db.Specialty.findOne({
+                where: { name: data.name },
+                attributes: ['id', 'name'],
+                raw: false
+            })
+            if (data.language === 'vi') {
+                if (!data.name || !data.image || !data.descriptionHTML || !data.descriptionMarkdown) {
                     resolve({
-                        errCode: 0,
-                        errMessage: 'Oke'
+                        errCode: 1,
+                        errMessage: 'Missing input parameter!'
                     })
                 } else {
+                    if (specialtyInfo) {
+                        specialtyInfo.image = data.image;
+                        specialtyInfo.descriptionHTML = data.descriptionHTML;
+                        specialtyInfo.descriptionMarkdown = data.descriptionMarkdown;
+                        await specialtyInfo.save();
+                        resolve({
+                            errCode: 0,
+                            errMessage: 'Oke'
+                        })
+                    } else {
+                        resolve({
+                            errCode: 2,
+                            errMessage: 'Specialty does not exist in the system'
+                        })
+                    }
+                }
+            } else if (data.language === 'en') {
+                if (!data.name || !data.image || !data.descriptionHTMLEn || !data.descriptionMarkdownEn) {
                     resolve({
-                        errCode: 2,
-                        errMessage: 'Specialty does not exist in the system'
+                        errCode: 1,
+                        errMessage: 'Missing input parameter!'
                     })
+                } else {
+                    if (specialtyInfo) {
+                        specialtyInfo.image = data.image;
+                        specialtyInfo.descriptionHTMLEn = data.descriptionHTMLEn;
+                        specialtyInfo.descriptionMarkdownEn = data.descriptionMarkdownEn;
+                        await specialtyInfo.save();
+                        resolve({
+                            errCode: 0,
+                            errMessage: 'Oke'
+                        })
+                    } else {
+                        resolve({
+                            errCode: 2,
+                            errMessage: 'Specialty does not exist in the system'
+                        })
+                    }
                 }
             }
         } catch (e) {

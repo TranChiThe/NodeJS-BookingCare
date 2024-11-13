@@ -35,6 +35,31 @@ module.exports = {
             equipmentMarkdown: {
                 type: Sequelize.TEXT
             },
+            //
+            nameEn: {
+                type: Sequelize.STRING
+            },
+            addressEn: {
+                type: Sequelize.STRING
+            },
+            introductionHTMLEn: {
+                type: Sequelize.TEXT
+            },
+            introductionMarkdownEn: {
+                type: Sequelize.TEXT
+            },
+            proStrengthHTMLEn: {
+                type: Sequelize.TEXT
+            },
+            proStrengthMarkdownEn: {
+                type: Sequelize.TEXT
+            },
+            equipmentHTMLEn: {
+                type: Sequelize.TEXT
+            },
+            equipmentMarkdownEn: {
+                type: Sequelize.TEXT
+            },
             image: {
                 type: Sequelize.BLOB('long')
             },

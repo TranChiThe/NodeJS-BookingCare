@@ -33,11 +33,40 @@ module.exports = {
                 allowNull: false,
                 type: Sequelize.STRING
             },
+            contentHTML: {
+                allowNull: false,
+                type: Sequelize.TEXT('long')
+            },
+            contentMarkDown: {
+                allowNull: false,
+                type: Sequelize.TEXT('long')
+            },
+            description: {
+                allowNull: true,
+                type: Sequelize.TEXT('long')
+            },
+            //
+            contentHTMLEn: {
+                allowNull: false,
+                type: Sequelize.TEXT('long')
+            },
+            contentMarkDownEn: {
+                allowNull: false,
+                type: Sequelize.TEXT('long')
+            },
+            descriptionEn: {
+                allowNull: true,
+                type: Sequelize.TEXT('long')
+            },
             homeAddress: {
                 allowNull: false,
                 type: Sequelize.STRING
             },
             note: {
+                allowNull: true,
+                type: Sequelize.STRING
+            },
+            noteEn: {
                 allowNull: true,
                 type: Sequelize.STRING
             },

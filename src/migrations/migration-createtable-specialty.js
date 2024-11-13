@@ -17,6 +17,12 @@ module.exports = {
             descriptionMarkdown: {
                 type: Sequelize.TEXT
             },
+            descriptionHTMLEn: {
+                type: Sequelize.TEXT
+            },
+            descriptionMarkdownEn: {
+                type: Sequelize.TEXT
+            },
             doctorNumber: {
                 type: Sequelize.INTEGER
             },

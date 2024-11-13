@@ -66,7 +66,7 @@ let getAllDoctor = (specialtyId, clinicId) => {
 }
 
 let checkRequiredFields = (inputData) => {
-    let requiredFields = ['doctorId', 'contentHTML', 'contentMarkDown', 'selectedPrice',
+    let requiredFields = ['doctorId', 'selectedPrice', 'contentHTML', 'description', 'contentMarkDown',
         'selectedPayment', 'selectedProvince', 'selectedClinic', 'specialtyId'
     ];
     let isValid = true;
@@ -79,7 +79,26 @@ let checkRequiredFields = (inputData) => {
             break;
         }
     }
+    return {
+        isValid: isValid,
+        missingField: missingField
+    };
+};
 
+let checkRequiredFieldsEn = (inputData) => {
+    let requiredFields = ['selectedPrice', 'contentHTMLEn', 'descriptionEn', 'contentMarkDownEn',
+        'selectedPayment', 'selectedProvince', 'selectedClinic', 'specialtyId'
+    ];
+    let isValid = true;
+    let missingField = '';
+
+    for (let field of requiredFields) {
+        if (inputData[field] == null || inputData[field] === '') {
+            isValid = false;
+            missingField = field;
+            break;
+        }
+    }
     return {
         isValid: isValid,
         missingField: missingField
@@ -90,47 +109,81 @@ let saveDetailInforDoctor = (inputData) => {
     return new Promise(async (resolve, reject) => {
         try {
             let checkObj = checkRequiredFields(inputData);
-            if (checkObj.isValid === false) {
-                resolve({
-                    errCode: 1,
-                    errMessage: `Thiếu tham số: ${checkObj.missingField}`
-                })
-            }
-            else {
-                let doctorMarkDown = await db.MarkDown.findOne({
-                    where: { doctorId: inputData.doctorId },
-                    raw: false,
-                })
-                let doctorInfo = await db.Doctor_Infor.findOne({
-                    where: { doctorId: inputData.doctorId },
-                    raw: false,
-                })
-
-                if ((doctorMarkDown && doctorInfo) || doctorMarkDown || doctorInfo) {
+            let checkObjEn = checkRequiredFieldsEn(inputData);
+            if (inputData.language === 'vi') {
+                if (checkObj.isValid === false) {
                     resolve({
-                        errCode: 2,
-                        errMessage: `Doctor information already exists in the system!`
+                        errCode: 1,
+                        errMessage: `Thiếu tham số: ${checkObj.missingField}`
                     })
                 } else {
-                    await db.MarkDown.create({
-                        contentHTML: inputData.contentHTML,
-                        contentMarkDown: inputData.contentMarkDown,
-                        description: inputData.description,
-                        doctorId: inputData.doctorId,
+                    let doctorInfo = await db.Doctor_Infor.findOne({
+                        where: { doctorId: inputData.doctorId },
+                        raw: false,
                     })
-                    await db.Doctor_Infor.create({
-                        doctorId: inputData.doctorId,
-                        priceId: inputData.selectedPrice,
-                        paymentId: inputData.selectedPayment,
-                        provinceId: inputData.selectedProvince,
-                        specialtyId: inputData.selectedSpecialty,
-                        clinicId: inputData.selectedClinic,
-                        note: inputData.note
-                    })
+                    if (doctorInfo) {
+                        resolve({
+                            errCode: 2,
+                            errMessage: `Doctor information already exists in the system!`
+                        })
+                    } else {
+                        await db.Doctor_Infor.create({
+                            language: inputData.language,
+                            doctorId: inputData.doctorId,
+                            priceId: inputData.selectedPrice,
+                            paymentId: inputData.selectedPayment,
+                            provinceId: inputData.selectedProvince,
+                            specialtyId: inputData.selectedSpecialty,
+                            clinicId: inputData.selectedClinic,
+                            note: inputData.note,
+                            contentHTML: inputData.contentHTML,
+                            contentMarkDown: inputData.contentMarkDown,
+                            description: inputData.description,
+                            contentHTMLEn: '',
+                            contentMarkDownEn: '',
+                            descriptionEn: '',
+                            noteEn: ''
+                        })
+                        resolve({
+                            errCode: 0,
+                            errMessage: `Save detail info doctor succeed!`
+                        })
+                    }
+                }
+            } else if (inputData.language === 'en') {
+                if (checkObjEn.isValid === false) {
                     resolve({
-                        errCode: 0,
-                        errMessage: `Save detail info doctor succeed!`
+                        errCode: 1,
+                        errMessage: `Thiếu tham số: ${checkObj.missingField}`
                     })
+                } else {
+                    let doctorInfo = await db.Doctor_Infor.findOne({
+                        where: { doctorId: inputData.doctorId },
+                        raw: false,
+                    })
+                    if (doctorInfo) {
+                        doctorInfo.doctorId = inputData.doctorId;
+                        doctorInfo.priceId = inputData.selectedPrice;
+                        doctorInfo.paymentId = inputData.selectedPayment;
+                        doctorInfo.provinceId = inputData.selectedProvince;
+                        doctorInfo.specialtyId = inputData.selectedSpecialty;
+                        doctorInfo.clinicId = inputData.selectedClinic;
+                        doctorInfo.noteEn = inputData.noteEn;
+                        doctorInfo.contentHTMLEn = inputData.contentHTMLEn;
+                        doctorInfo.contentMarkDownEn = inputData.contentMarkDownEn;
+                        doctorInfo.descriptionEn = inputData.descriptionEn;
+                        doctorInfo.updateAt = new Date();
+                        await doctorInfo.save();
+                        resolve({
+                            errCode: 0,
+                            errMessage: `Save detail info doctor succeed!`
+                        })
+                    } else {
+                        resolve({
+                            errCode: 3,
+                            errMessage: `You need to enter Vietnamese language information first.!`
+                        })
+                    }
                 }
             }
         } catch (e) {
@@ -139,49 +192,77 @@ let saveDetailInforDoctor = (inputData) => {
     })
 }
 
+
 let updateDetailInforDoctor = (inputData) => {
     return new Promise(async (resolve, reject) => {
+        let checkObj = checkRequiredFields(inputData);
+        let checkObjEn = checkRequiredFieldsEn(inputData);
         try {
-            let checkObj = checkRequiredFields(inputData);
-            if (checkObj.isValid === false) {
-                resolve({
-                    errCode: 1,
-                    errMessage: `Thiếu tham số: ${checkObj.missingField}`
-                })
-            }
-            else {
-                let doctorMarkDown = await db.MarkDown.findOne({
-                    where: { doctorId: inputData.doctorId },
-                    raw: false,
-                })
-                let doctorInfo = await db.Doctor_Infor.findOne({
-                    where: { doctorId: inputData.doctorId },
-                    raw: false,
-                })
-                if (doctorMarkDown && doctorInfo) {
-                    doctorMarkDown.contentHTML = inputData.contentHTML;
-                    doctorMarkDown.contentMarkDown = inputData.contentMarkDown;
-                    doctorMarkDown.description = inputData.description;
-                    doctorMarkDown.updateAt = new Date();
-                    await doctorMarkDown.save()
-
-                    doctorInfo.doctorId = inputData.doctorId;
-                    doctorInfo.priceId = inputData.selectedPrice;
-                    doctorInfo.paymentId = inputData.selectedPayment;
-                    doctorInfo.provinceId = inputData.selectedProvince;
-                    doctorInfo.specialtyId = inputData.selectedSpecialty;
-                    doctorInfo.clinicId = inputData.selectedClinic;
-                    doctorInfo.note = inputData.note;
-                    await doctorInfo.save();
+            let doctorInfo = await db.Doctor_Infor.findOne({
+                where: { doctorId: inputData.doctorId },
+                raw: false,
+            })
+            if (inputData.language === 'en') {
+                if (checkObjEn.isValid === false) {
                     resolve({
-                        errCode: 0,
-                        errMessage: `Save detail info doctor succeed!`
+                        errCode: 1,
+                        errMessage: `Thiếu tham số: ${checkObj.missingField}`
                     })
                 } else {
+                    if (doctorInfo) {
+                        doctorInfo.doctorId = inputData.doctorId;
+                        doctorInfo.priceId = inputData.selectedPrice;
+                        doctorInfo.paymentId = inputData.selectedPayment;
+                        doctorInfo.provinceId = inputData.selectedProvince;
+                        doctorInfo.specialtyId = inputData.selectedSpecialty;
+                        doctorInfo.clinicId = inputData.selectedClinic;
+                        doctorInfo.noteEn = inputData.noteEn;
+                        doctorInfo.contentHTMLEn = inputData.contentHTMLEn;
+                        doctorInfo.contentMarkDownEn = inputData.contentMarkDownEn;
+                        doctorInfo.descriptionEn = inputData.descriptionEn;
+                        doctorInfo.updateAt = new Date();
+                        await doctorInfo.save();
+                        resolve({
+                            errCode: 0,
+                            errMessage: `Save detail info doctor succeed!`
+                        })
+                    } else {
+                        resolve({
+                            errCode: 2,
+                            errMessage: `Doctor information does not exist in the system!`
+                        })
+                    }
+                }
+            } else if (inputData.language === 'vi') {
+                if (checkObj.isValid === false) {
                     resolve({
-                        errCode: 2,
-                        errMessage: `Doctor information does not exist in the system!`
+                        errCode: 1,
+                        errMessage: `Thiếu tham số: ${checkObj.missingField}`
                     })
+                } else {
+                    if (doctorInfo) {
+                        doctorInfo.doctorId = inputData.doctorId;
+                        doctorInfo.priceId = inputData.selectedPrice;
+                        doctorInfo.paymentId = inputData.selectedPayment;
+                        doctorInfo.provinceId = inputData.selectedProvince;
+                        doctorInfo.specialtyId = inputData.selectedSpecialty;
+                        doctorInfo.clinicId = inputData.selectedClinic;
+                        doctorInfo.note = inputData.note;
+                        doctorInfo.contentHTML = inputData.contentHTML;
+                        doctorInfo.contentMarkDown = inputData.contentMarkDown;
+                        doctorInfo.description = inputData.description;
+                        doctorInfo.updateAt = new Date();
+                        await doctorInfo.save();
+                        resolve({
+                            errCode: 0,
+                            errMessage: `Save detail info doctor succeed!`
+                        })
+                    } else {
+                        resolve({
+                            errCode: 2,
+                            errMessage: `Doctor information does not exist in the system!`
+                        })
+                    }
                 }
             }
         } catch (e) {
@@ -210,7 +291,7 @@ let deleteDetailInforDoctor = (doctorId) => {
                     where: { doctorId: doctorId },
                     raw: false,
                 })
-                if (doctorInfo && doctorMarkDown) {
+                if (doctorInfo) {
                     await db.MarkDown.destroy({
                         where: { doctorId: doctorId },
                     })

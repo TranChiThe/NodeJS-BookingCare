@@ -66,6 +66,10 @@ let initWebRouter = (app) => {
     router.get('/api/get-appointment-by-time', adminController.getAppointmentByTime)
     router.get('/api/get-count-patient-by-time', adminController.getCountPatientByTime)
     router.get('/api/get-dashboard-info', adminController.getDashBoardInfo)
+    router.get('/api/get-system-code', adminController.getSystemCode)
+    router.post('/api/add-system-code', adminController.addSystemCode)
+    router.post('/api/edit-system-code', adminController.editSystemCode)
+    router.delete('/api/delete-system-code', adminController.deleteSystemCode)
 
 
     // ------------------------ API USER ------------------------------\\
@@ -95,9 +99,6 @@ let initWebRouter = (app) => {
     router.get('/api/get-patient-appointment', doctorController.getPatientAppointment);
     router.put('/api/post-confirm-appointment', doctorController.postConfirmAppointment);
     router.put('/api/post-cancel-appointment', doctorController.postCancelAppointment);
-
-
-
 
     //---------------------- API PATIENT ----------------------------\\
     router.post('/api/patient-book-appointment', patientController.postBookAppointment)

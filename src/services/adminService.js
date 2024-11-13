@@ -1,6 +1,6 @@
 import { raw } from 'body-parser';
 import db from '../models/index';
-const { Op, fn, col } = require('sequelize');
+const { Op, fn, col, where } = require('sequelize');
 import dotenv from 'dotenv';
 dotenv.config();
 import _, { includes, reject } from 'lodash'
@@ -204,12 +204,143 @@ let getDashBoardInfo = (type) => {
     });
 };
 
-let postComment = () => {
+let getSystemCode = (page = 1, limit = 10) => {
     return new Promise(async (resolve, reject) => {
         try {
-
+            const offset = (page - 1) * limit;
+            let codeValue = await db.Allcode.findAll({
+                offset: offset,
+                limit: limit
+            });
+            const totalItems = await db.Allcode.count();
+            const totalPages = Math.ceil(totalItems / limit);
+            if (codeValue) {
+                resolve({
+                    errCode: 0,
+                    errMessage: 'Oke',
+                    data: codeValue,
+                    pagination: {
+                        currentPage: page,
+                        limit: limit,
+                        totalItems: totalItems,
+                        totalPages: totalPages,
+                    }
+                });
+            } else {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Error from server'
+                });
+            }
         } catch (e) {
-            console.log('Error from server: ', e);
+            console.error('Error from server: ', e);
+            reject(e);
+        }
+    });
+}
+
+let addSystemCode = (data) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!data.keyMap || !data.type || !data.valueVi || !data.valueEn) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing input parameter'
+                })
+            } else {
+                let systemCode = await db.Allcode.findOne({
+                    where: { keyMap: data.keyMap }
+                })
+                if (systemCode) {
+                    resolve({
+                        errCode: 2,
+                        errMessage: 'Code already exists in the system'
+                    })
+                } else {
+                    await db.Allcode.create({
+                        keyMap: data.keyMap,
+                        type: data.type,
+                        valueVi: data.valueVi,
+                        valueEn: data.valueEn
+                    })
+                    resolve({
+                        errCode: 0,
+                        errMessage: 'Oke'
+                    })
+                }
+            }
+        } catch (e) {
+            console.error('Error from server: ', e);
+            reject(e);
+        }
+    })
+}
+
+let editSystemCode = (data) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!data.keyMap || !data.type || !data.valueVi || !data.valueEn) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing input parameter'
+                })
+            } else {
+                let systemCode = await db.Allcode.findOne({
+                    where: { keyMap: data.keyMap }
+                })
+                if (!systemCode) {
+                    resolve({
+                        errCode: 2,
+                        errMessage: 'Code does not exists in the system'
+                    })
+                } else {
+                    systemCode.keyMap = data.keyMap;
+                    systemCode.type = data.type;
+                    systemCode.valueVi = data.valueVi;
+                    systemCode.valueEn = data.valueEn;
+                    await systemCode.save();
+                    resolve({
+                        errCode: 0,
+                        errMessage: 'Oke'
+                    })
+                }
+            }
+        } catch (e) {
+            console.error('Error from server: ', e);
+            reject(e);
+        }
+    })
+}
+
+let deleteSystemCode = async (id) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!id) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing input parameter'
+                })
+            } else {
+                let systemCode = db.Allcode.findOne({
+                    where: { id: id }
+                })
+                if (!systemCode) {
+                    resolve({
+                        errCode: 2,
+                        errMessage: 'Code does not exists in the system'
+                    })
+                } else {
+                    await db.Allcode.destroy({
+                        where: { id: id }
+                    })
+                    resolve({
+                        errCode: 0,
+                        errMessage: 'Oke'
+                    })
+                }
+            }
+        } catch (e) {
+            console.error('Error from server: ', e);
             reject(e);
         }
     })
@@ -219,5 +350,8 @@ module.exports = {
     getAppointmentByTime,
     getCountPatientByTime,
     getDashBoardInfo,
-    postComment
+    getSystemCode,
+    addSystemCode,
+    editSystemCode,
+    deleteSystemCode
 }
