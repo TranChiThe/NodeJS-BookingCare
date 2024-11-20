@@ -162,7 +162,7 @@ let getCountPatientByTime = (type, month, year) => {
 let getDashBoardInfo = (type) => {
     return new Promise(async (resolve, reject) => {
         try {
-            let userCount = 0, doctorCount = 0, patientCount = 0, appointmentCount = 0;
+            let userCount = 0, doctorCount = 0, patientCount = 0, appointmentCount = 0, commentCount = 0;
             if (!type) {
                 resolve({
                     errCode: 1,
@@ -183,6 +183,9 @@ let getDashBoardInfo = (type) => {
                 if (type === 'appointment') {
                     appointmentCount = await db.Appointment.count();
                 }
+                if (type === 'comment') {
+                    commentCount = await db.Comment.count();
+                }
                 resolve({
                     errCode: 0,
                     errMessage: 'Success',
@@ -190,7 +193,8 @@ let getDashBoardInfo = (type) => {
                         userCount,
                         doctorCount,
                         patientCount,
-                        appointmentCount
+                        appointmentCount,
+                        commentCount
                     }
                 });
             }

@@ -256,6 +256,47 @@ let postCancelAppointment = async (req, res) => {
     }
 }
 
+let getDoctorComment = async (req, res) => {
+    try {
+        let { doctorId, page = 1, limit = 4 } = req.query
+        let response = await doctorService.getDoctorComment(doctorId, parseInt(page), parseInt(limit));
+        return res.status(200).json(response)
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({
+            errCode: -1,
+            errMessage: 'Error from server...'
+        })
+    }
+}
+
+let getAllDoctorCommentByDate = async (req, res) => {
+    try {
+        let { doctorId, startDate, endDate, page = 1, limit = 10 } = req.query
+        let response = await doctorService.getAllDoctorCommentByDate(doctorId, startDate, endDate, parseInt(page), parseInt(limit));
+        return res.status(200).json(response)
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({
+            errCode: -1,
+            errMessage: 'Error from server...'
+        })
+    }
+}
+
+let deleteDoctorComment = async (req, res) => {
+    try {
+        let { id } = req.query
+        let response = await doctorService.deleteDoctorComment(id);
+        return res.status(200).json(response)
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({
+            errCode: -1,
+            errMessage: 'Error from server...'
+        })
+    }
+}
 module.exports = {
     getDoctorHome,
     getAllDoctor,
@@ -275,5 +316,8 @@ module.exports = {
     deleteInforDoctor,
     getPatientAppointment,
     postConfirmAppointment,
-    postCancelAppointment
+    postCancelAppointment,
+    getDoctorComment,
+    getAllDoctorCommentByDate,
+    deleteDoctorComment
 }

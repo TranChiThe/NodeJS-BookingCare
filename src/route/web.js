@@ -7,22 +7,7 @@ import specialtyController from '../controllers/specialtyController'
 import middlewareController from '../controllers/middlewareController'
 import clinicController from '../controllers/clinicController'
 import adminController from '../controllers/adminController'
-const { SessionsClient } = require('@google-cloud/dialogflow');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-
-
-require('dotenv').config();
-const sessionClient = new SessionsClient({
-    keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-});
-
-// Create a new session client
-const projectId = process.env.PROJECT_ID;
-const sessionId = uuidv4();
-const sessionPath = sessionClient.projectAgentSessionPath(projectId, sessionId);
-console.log(`Session path: ${sessionPath}`);
-
+import chatbotController from '../controllers/chatbotController'
 let router = express.Router();
 let initWebRouter = (app) => {
 
@@ -33,34 +18,7 @@ let initWebRouter = (app) => {
     router.post('/api/logout', middlewareController.verifyToken, authController.logOut);
 
     // ------------------------ API CHATBOT ------------------------------\\
-
-    // Xử lý yêu cầu từ người dùng
-    router.post('/webhook', async (req, res) => {
-        const sessionPath = sessionClient.projectAgentSessionPath(projectId, sessionId);
-
-        const request = {
-            session: sessionPath,
-            queryInput: {
-                text: {
-                    text: req.body.query,
-                    languageCode: 'vi',
-                },
-            },
-        };
-
-        try {
-            const responses = await sessionClient.detectIntent(request);
-            const result = responses[0].queryResult;
-
-            // Gửi phản hồi lại cho người dùng
-            res.json({
-                fulfillmentText: result.fulfillmentText,
-            });
-        } catch (error) {
-            console.error('Error detecting intent:', error);
-            res.status(500).send('Error detecting intent');
-        }
-    });
+    router.post('/webhook', chatbotController.handleSendMessage)
 
     // ------------------------ API ADMIN ------------------------------\\
     router.get('/api/get-appointment-by-time', adminController.getAppointmentByTime)
@@ -99,12 +57,17 @@ let initWebRouter = (app) => {
     router.get('/api/get-patient-appointment', doctorController.getPatientAppointment);
     router.put('/api/post-confirm-appointment', doctorController.postConfirmAppointment);
     router.put('/api/post-cancel-appointment', doctorController.postCancelAppointment);
+    router.get('/api/get-doctor-comment', doctorController.getDoctorComment);
+    router.get('/api/get-all-doctor-comment-by-date', doctorController.getAllDoctorCommentByDate);
+    router.delete('/api/delete-doctor-comment', doctorController.deleteDoctorComment);
 
     //---------------------- API PATIENT ----------------------------\\
     router.post('/api/patient-book-appointment', patientController.postBookAppointment)
     router.post('/api/verify-book-appointment', patientController.postVerifyBookAppointment)
     router.get('/api/home-search', patientController.HomeSearch)
     router.get('/api/get-all-patient-appointment', patientController.getAllPatientAppointment)
+    router.post('/api/post-comment', patientController.handlePostComment)
+
 
     //---------------------- API SPECIALTY ----------------------------\\
     router.post('/api/create-new-specialty', specialtyController.createSpecialty)

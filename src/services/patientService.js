@@ -159,6 +159,7 @@ let postBookAppointment = (data) => {
                 }
             });
 
+
             if (created) {
                 resolve({
                     errCode: 0,
@@ -488,10 +489,53 @@ let getAllPatientAppointment = (email, recordId) => {
         }
     })
 }
+
+let handlePostComment = (data) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!data.patientId || !data.doctorId || !data.content || !data.date, !data.examinationDate) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing input parameter'
+                })
+            } else {
+                let appointment = await db.Appointment.findOne({
+                    where: {
+                        patientId: data.patientId,
+                        statusId: 'S4'
+                    }
+                })
+                if (!appointment) {
+                    resolve({
+                        errCode: 2,
+                        errMessage: 'Appointment not available'
+                    })
+                } else {
+                    await db.Comment.create({
+                        doctorId: data.doctorId,
+                        patientId: data.patientId,
+                        content: data.content,
+                        date: data.date,
+                        examinationDate: data.examinationDate
+                    })
+                    resolve({
+                        errCode: 0,
+                        errMessage: 'Oke'
+                    })
+                }
+            }
+        } catch (e) {
+            console.error('Error from server: ', e);
+            reject(e);
+        }
+    })
+}
+
 module.exports = {
     postBookAppointment,
     buildUrlEmail,
     postVerifyBookAppointment,
     HomeSearch,
-    getAllPatientAppointment
+    getAllPatientAppointment,
+    handlePostComment
 }

@@ -1,9 +1,9 @@
 import { raw } from 'body-parser';
 import db from '../models/index';
-import { where, Op, sequelize } from 'sequelize';
+import { where, Op, Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
 dotenv.config();
-import _, { includes, reject } from 'lodash'
+import _, { includes, orderBy, reject } from 'lodash'
 const MAX_NUMBER_SCHEDULE = process.env.MAX_NUMBER_SCHEDULE
 
 let getTopDoctorHome = (limitInput) => {
@@ -795,9 +795,14 @@ let createBusySchedule = (data) => {
 
 let getScheduleDoctorForWeek = (doctorId, weekNumber) => {
     const currentDate = new Date();
-    const startOfWeek = new Date();
-    startOfWeek.setHours(0, 0, 0, 0);
-    startOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + 1 + (weekNumber - 1) * 7);
+    currentDate.setHours(0, 0, 0, 0); // Đặt về đầu ngày
+
+    const dayOfWeek = currentDate.getDay(); // 0 = Chủ nhật, 1 = Thứ Hai, ...
+    const startOfWeek = new Date(currentDate);
+
+    // Nếu tuần bắt đầu từ Thứ Hai
+    const dayOffset = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek; // Chủ nhật (0) lùi 6 ngày, còn lại lùi đúng số ngày
+    startOfWeek.setDate(currentDate.getDate() + dayOffset + (weekNumber - 1) * 7);
 
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
@@ -854,6 +859,7 @@ let getPatientAppointment = (doctorId, statusId, date, searchTerm, page = 1, lim
     return new Promise(async (resolve, reject) => {
         try {
             let searchConditions = {};
+            let recordSearch = {};
             if (page < 1 || limit < 1) {
                 return reject({
                     errCode: 1,
@@ -880,13 +886,18 @@ let getPatientAppointment = (doctorId, statusId, date, searchTerm, page = 1, lim
                             { [Op.like]: `%${searchTerm}%` }
                         )
                     ];
+
+                    recordSearch = {
+                        recordId: { [Op.like]: `%${searchTerm}%` }
+                    };
                 }
 
                 let appointment = await db.Appointment.findAndCountAll({
                     where: {
                         doctorId: doctorId,
                         statusId: statusId,
-                        date: date
+                        date: date,
+                        ...recordSearch
                     },
                     limit: parseInt(limit),
                     offset: offset,
@@ -896,7 +907,7 @@ let getPatientAppointment = (doctorId, statusId, date, searchTerm, page = 1, lim
                         { model: db.Allcode, as: 'timeTypeAppointment', attributes: ['valueEn', 'valueVi'] },
                         {
                             model: db.Patient,
-                            where: searchConditions,
+                            // where: searchConditions,
                             as: 'appointmentData'
                         }
                     ],
@@ -1002,6 +1013,137 @@ const postCancelAppointment = async (id) => {
     });
 };
 
+let getDoctorComment = (doctorId, page = 1, limit = 3) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const offset = (page - 1) * limit;
+            if (!doctorId) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing input parameter'
+                })
+            } else {
+                let comment = await db.Comment.findAndCountAll({
+                    where: { doctorId: doctorId },
+                    order: [
+                        ['createdAt', 'DESC']
+                    ],
+                    limit: limit,
+                    offset: offset,
+                    include: [
+                        { model: db.Patient, as: 'patientComment', attributes: ['firstName', 'lastName'] }
+                    ],
+                    raw: true,
+                    nest: true
+                })
+                const totalPages = Math.ceil(comment.count / limit);
+                if (comment) {
+                    resolve({
+                        errCode: 0,
+                        errMessage: 'Oke',
+                        data: comment.rows,
+                        currentPage: parseInt(page),
+                        totalPages: totalPages
+                    })
+                } else {
+                    resolve({
+                        errCode: 2,
+                        errMessage: 'Comment not found!'
+                    })
+                }
+            }
+        } catch (e) {
+            console.log('Error from server: ', e);
+            reject(e);
+        }
+    })
+}
+
+let getAllDoctorCommentByDate = (doctorId, startDate, endDate, page = 1, limit = 15) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const offset = (page - 1) * limit;
+            if (!doctorId) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing input parameter'
+                })
+            } else {
+                let comment = await db.Comment.findAndCountAll({
+                    where: {
+                        doctorId: doctorId,
+                        createdAt: {
+                            [db.Sequelize.Op.between]: [startDate, endDate],
+                        },
+                    },
+                    order: [
+                        ['createdAt', 'DESC']
+                    ],
+                    limit: limit,
+                    offset: offset,
+                    include: [
+                        { model: db.Patient, as: 'patientComment', attributes: ['firstName', 'lastName'] },
+                        { model: db.User, as: 'doctorComment', attributes: ['firstName', 'lastName'] },
+                    ],
+                    raw: true,
+                    nest: true
+                })
+                const totalPages = Math.ceil(comment.count / limit);
+                if (comment) {
+                    resolve({
+                        errCode: 0,
+                        errMessage: 'Oke',
+                        data: comment.rows,
+                        currentPage: parseInt(page),
+                        totalPages: totalPages
+                    })
+                } else {
+                    resolve({
+                        errCode: 2,
+                        errMessage: 'Comment not found!'
+                    })
+                }
+            }
+        } catch (e) {
+            console.log('Error from server: ', e);
+            reject(e);
+        }
+    })
+}
+
+let deleteDoctorComment = (id) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!id) {
+                resolve({
+                    errCode: 0,
+                    errMessage: 'Missing input parameter'
+                })
+            } else {
+                let comment = await db.Comment.findOne({
+                    where: { id: id }
+                })
+                if (comment) {
+                    await db.Comment.destroy({
+                        where: { id: id }
+                    })
+                    resolve({
+                        errCode: 0,
+                        errMessage: 'Oke'
+                    })
+                } else {
+                    resolve({
+                        errCode: 2,
+                        errMessage: "Comment does not exists"
+                    })
+                }
+            }
+        } catch (e) {
+            console.log('Error from server ', e);
+            reject(e);
+        }
+    })
+}
 
 module.exports = {
     getTopDoctorHome: getTopDoctorHome,
@@ -1021,5 +1163,8 @@ module.exports = {
     deleteDetailInforDoctor,
     getPatientAppointment,
     postConfirmAppointment,
-    postCancelAppointment
+    postCancelAppointment,
+    getDoctorComment,
+    getAllDoctorCommentByDate,
+    deleteDoctorComment
 }

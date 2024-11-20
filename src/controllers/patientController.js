@@ -53,9 +53,23 @@ let getAllPatientAppointment = async (req, res) => {
     }
 }
 
+let handlePostComment = async (req, res) => {
+    try {
+        let info = await patientService.handlePostComment(req.body)
+        return res.status(200).json(info);
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({
+            errCode: -1,
+            errMessage: 'Error from server...'
+        })
+    }
+}
+
 module.exports = {
     postBookAppointment,
     postVerifyBookAppointment,
     HomeSearch,
-    getAllPatientAppointment
+    getAllPatientAppointment,
+    handlePostComment
 }
