@@ -5,9 +5,10 @@ import emailService from './emailService'
 import _, { defaults, first, reject } from 'lodash'
 import { v4 as uuidv4 } from 'uuid';
 import { where, Op, sequelize } from 'sequelize';
+const cron = require('node-cron');
 
-let buildUrlEmail = (token, patientId, date, timeType) => {
-    let result = `${process.env.URL_REACT}/verify-booking?token=${token}&patientId=${patientId}&date=${date}&timeType=${timeType}`
+let buildUrlEmail = (token, patientId, date, timeType, doctorId) => {
+    let result = `${process.env.URL_REACT}/verify-booking?token=${token}&patientId=${patientId}&date=${date}&timeType=${timeType}&doctorId=${doctorId}`
     return result;
 }
 
@@ -81,7 +82,7 @@ let postBookAppointment = (data) => {
                         patientId: user.id,
                         date: data.date,
                         timeType: morningTimes,
-                        statusId: 'S2',
+                        statusId: { [db.Sequelize.Op.in]: ['S2', 'S3', 'S4'] }
                     }
                 })
                 : null;
@@ -92,7 +93,7 @@ let postBookAppointment = (data) => {
                         patientId: user.id,
                         date: data.date,
                         timeType: afternoonTimes,
-                        statusId: 'S2',
+                        statusId: { [db.Sequelize.Op.in]: ['S2', 'S3', 'S4'] }
                     }
                 })
                 : null;
@@ -130,7 +131,7 @@ let postBookAppointment = (data) => {
                     patientName: data.firstName,
                     doctorName: data.doctorName,
                     language: data.language,
-                    redirectLink: buildUrlEmail(token, user.id, data.date, data.timeType),
+                    redirectLink: buildUrlEmail(token, user.id, data.date, data.timeType, data.doctorId),
                 });
             }
 
@@ -177,6 +178,99 @@ let postBookAppointment = (data) => {
     });
 };
 
+// let postVerifyBookAppointment = (data) => {
+//     return new Promise(async (resolve, reject) => {
+//         try {
+//             if (!data.token) {
+//                 resolve({
+//                     errCode: 1,
+//                     errMessage: 'Missing required parameter'
+//                 });
+//                 return;
+//             }
+
+//             // Kiểm tra xem lịch hẹn đã được xác nhận hay chưa
+//             let existsAppointment = await db.Appointment.findOne({
+//                 where: {
+//                     patientId: data.patientId,
+//                     date: data.date,
+//                     timeType: data.timeType,
+//                     statusId: 'S2'
+//                 }
+//             });
+
+//             if (existsAppointment) {
+//                 resolve({
+//                     errCode: 2,
+//                     errMessage: 'Your appointment has been confirmed or does not exist in the system, please check again!'
+//                 });
+//                 return;
+//             }
+
+//             // Tìm lịch hẹn với trạng thái chưa xác nhận
+//             let appointment = await db.Appointment.findOne({
+//                 where: {
+//                     patientId: data.patientId,
+//                     date: data.date,
+//                     timeType: data.timeType,
+//                     token: data.token,
+//                     statusId: 'S1'
+//                 },
+//                 raw: false
+//             });
+
+//             if (appointment) {
+//                 // Tìm schedule tương ứng để kiểm tra giới hạn số lượng
+//                 let schedule = await db.Schedule.findOne({
+//                     where: {
+//                         doctorId: appointment.doctorId,
+//                         date: data.date,
+//                         timeType: data.timeType
+//                     },
+//                     raw: false
+//                 });
+
+//                 if (!schedule) {
+//                     resolve({
+//                         errCode: 3,
+//                         errMessage: 'Schedule not found'
+//                     });
+//                     return;
+//                 }
+
+//                 // Kiểm tra xem số lượng lịch hẹn đã đạt giới hạn chưa
+//                 if (schedule.currentNumber >= schedule.maxNumber) {
+//                     resolve({
+//                         errCode: 4,
+//                         errMessage: 'This time slot has reached the maximum number of confirmed appointments for this doctor.'
+//                     });
+//                     return;
+//                 }
+
+//                 // Xác nhận lịch hẹn và cập nhật số lượng
+//                 appointment.statusId = 'S2';
+//                 await appointment.save();
+
+//                 // Tăng currentNumber trong Schedule
+//                 schedule.currentNumber += 1;
+//                 await schedule.save();
+
+//                 resolve({
+//                     errCode: 0,
+//                     errMessage: 'Update appointment succeeded!'
+//                 });
+//             } else {
+//                 resolve({
+//                     errCode: 2,
+//                     errMessage: 'Your appointment has been confirmed or does not exist in the system, please check again!'
+//                 });
+//             }
+//         } catch (e) {
+//             reject(e);
+//         }
+//     });
+// };
+
 let postVerifyBookAppointment = (data) => {
     return new Promise(async (resolve, reject) => {
         try {
@@ -188,30 +282,38 @@ let postVerifyBookAppointment = (data) => {
                 return;
             }
 
-            // Kiểm tra xem lịch hẹn đã được xác nhận hay chưa
-            let existsAppointment = await db.Appointment.findOne({
+            // Xác định buổi sáng hoặc chiều dựa trên timeType
+            const morningSlots = ['T1', 'T2', 'T3', 'T4'];
+            const afternoonSlots = ['T5', 'T6', 'T7', 'T8'];
+            const isMorning = morningSlots.includes(data.timeType);
+            const timeSlotGroup = isMorning ? morningSlots : afternoonSlots;
+
+            // Kiểm tra lịch hẹn trong cùng buổi với cùng bác sĩ
+            let existingAppointmentInSession = await db.Appointment.findOne({
                 where: {
                     patientId: data.patientId,
+                    // doctorId: data.doctorId,
                     date: data.date,
-                    timeType: data.timeType,
-                    statusId: 'S2'
+                    timeType: { [db.Sequelize.Op.in]: timeSlotGroup },
+                    statusId: { [db.Sequelize.Op.in]: ['S2', 'S3', 'S4'] }
                 }
             });
 
-            if (existsAppointment) {
+            if (existingAppointmentInSession) {
                 resolve({
-                    errCode: 2,
-                    errMessage: 'Your appointment has been confirmed or does not exist in the system, please check again!'
+                    errCode: 5,
+                    errMessage: `You already have an appointment with this doctor in the ${isMorning ? 'morning' : 'afternoon'} session.`
                 });
                 return;
             }
 
-            // Tìm lịch hẹn với trạng thái chưa xác nhận
+            // Kiểm tra trạng thái lịch hẹn chưa được xác nhận
             let appointment = await db.Appointment.findOne({
                 where: {
                     patientId: data.patientId,
                     date: data.date,
                     timeType: data.timeType,
+                    doctorId: data.doctorId,
                     token: data.token,
                     statusId: 'S1'
                 },
@@ -219,7 +321,7 @@ let postVerifyBookAppointment = (data) => {
             });
 
             if (appointment) {
-                // Tìm schedule tương ứng để kiểm tra giới hạn số lượng
+                // Tìm schedule tương ứng
                 let schedule = await db.Schedule.findOne({
                     where: {
                         doctorId: appointment.doctorId,
@@ -237,7 +339,7 @@ let postVerifyBookAppointment = (data) => {
                     return;
                 }
 
-                // Kiểm tra xem số lượng lịch hẹn đã đạt giới hạn chưa
+                // Kiểm tra giới hạn số lượng lịch hẹn
                 if (schedule.currentNumber >= schedule.maxNumber) {
                     resolve({
                         errCode: 4,

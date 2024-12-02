@@ -18,7 +18,7 @@ let initWebRouter = (app) => {
     router.post('/api/logout', middlewareController.verifyToken, authController.logOut);
 
     // ------------------------ API CHATBOT ------------------------------\\
-    router.post('/webhook', chatbotController.handleSendMessage)
+    router.post('/chat', chatbotController.handleSendMessageChatbot)
 
     // ------------------------ API ADMIN ------------------------------\\
     router.get('/api/get-appointment-by-time', adminController.getAppointmentByTime)

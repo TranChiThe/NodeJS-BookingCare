@@ -1,20 +1,17 @@
 import chatbotService from '../services/chatbotService'
 
-let handleSendMessage = async (req, res) => {
-    const sessionId = req.body.sessionId || 'unique-session-id';  // Session ID duy nhất cho mỗi cuộc trò chuyện
-    const query = req.body.query;  // Câu hỏi của người dùng từ Dialogflow
+let handleSendMessageChatbot = async (req, res) => {
+    let query = req.body.query;
     try {
-        const fulfillmentText = await chatbotService.getResponseFromIntent(query, sessionId)
-        if (!res.headersSent) {
-            res.json({
-                fulfillmentText
-            });
-        }
+        const fulfillmentText = await chatbotService.getResponseMessageFromIntent(query)
+        return res.json({
+            fulfillmentText
+        });
     } catch (error) {
         console.error('Error detecting intent:', error);
         res.status(500).send('Error detecting intent');
     }
 }
 module.exports = {
-    handleSendMessage,
+    handleSendMessageChatbot
 }

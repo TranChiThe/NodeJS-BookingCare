@@ -29,12 +29,18 @@ let getAppointmentByTime = (statusId, month, year) => {
             try {
                 const appointmentCount = await db.Appointment.count({ where });
                 const totalRevenue = await db.Appointment.sum('appointmentFee', { where });
+                const totalPatient = await db.Appointment.count({
+                    // distinct: true,
+                    col: 'patientId',
+                    where,
+                });
                 resolve({
                     errCode: 0,
                     errMessage: 'Oke',
                     data: {
                         appointmentCount,
-                        totalRevenue: totalRevenue || 0
+                        totalRevenue: totalRevenue || 0,
+                        totalPatient
                     }
                 })
             } catch (error) {
@@ -42,7 +48,6 @@ let getAppointmentByTime = (statusId, month, year) => {
                 reject(error)
             }
         }
-
     });
 }
 
@@ -58,13 +63,27 @@ const countPatientsByWeek = async (year, month) => {
             }
 
             const patientCounts = await db.Appointment.count({
+                // distinct: true,
+                // col: 'patientId',
                 where: {
                     createdAt: {
                         [Op.between]: [startOfWeek, endOfWeek],
                     },
+                    statusId: 'S4'
                 },
             });
-            return patientCounts
+            const appointmentCounts = await db.Appointment.count({
+                where: {
+                    createdAt: {
+                        [Op.between]: [startOfWeek, endOfWeek],
+                    },
+                    // statusId: { [db.Sequelize.Op.in]: ['S2', 'S3', 'S4'] }
+                },
+            });
+            return {
+                patientCounts,
+                appointmentCounts
+            }
         })
     );
     return weeklyCounts;
@@ -78,13 +97,27 @@ const countPatientsByMonth = async (year) => {
             const endOfMonth = new Date(year, month + 1, 0); // Ngày cuối cùng của tháng
 
             const patientCounts = await db.Appointment.count({
+                // distinct: true,
+                // col: 'patientId',
                 where: {
                     createdAt: {
                         [Op.between]: [startOfMonth, endOfMonth],
                     },
+                    statusId: 'S4'
                 },
             });
-            return patientCounts;
+            const appointmentCounts = await db.Appointment.count({
+                where: {
+                    createdAt: {
+                        [Op.between]: [startOfMonth, endOfMonth],
+                    },
+                    // statusId: { [db.Sequelize.Op.in]: ['S2', 'S3', 'S4'] }
+                },
+            });
+            return {
+                patientCounts,
+                appointmentCounts
+            };
         })
     );
     return monthlyCounts;

@@ -11,6 +11,8 @@ module.exports = (sequelize, DataTypes) => {
             Doctor_Infor.belongsTo(models.Allcode, { foreignKey: 'paymentId', targetKey: 'keyMap', as: 'paymentTypeData' })
             Doctor_Infor.belongsTo(models.Allcode, { foreignKey: 'provinceId', targetKey: 'keyMap', as: 'provinceTypeData' })
             Doctor_Infor.belongsTo(models.Allcode, { foreignKey: 'clinicId', targetKey: 'keyMap', as: 'clinicTypeData' })
+
+            Doctor_Infor.belongsTo(models.Specialty, { foreignKey: 'specialtyId', targetKey: 'name' })
             Doctor_Infor.belongsTo(models.Clinic, { foreignKey: 'clinicId', targetKey: 'name' })
         }
     };

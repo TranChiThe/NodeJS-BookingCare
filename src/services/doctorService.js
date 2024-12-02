@@ -4,6 +4,7 @@ import { where, Op, Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
 dotenv.config();
 import _, { includes, orderBy, reject } from 'lodash'
+const cron = require('node-cron');
 const MAX_NUMBER_SCHEDULE = process.env.MAX_NUMBER_SCHEDULE
 
 let getTopDoctorHome = (limitInput) => {
@@ -192,7 +193,6 @@ let saveDetailInforDoctor = (inputData) => {
     })
 }
 
-
 let updateDetailInforDoctor = (inputData) => {
     return new Promise(async (resolve, reject) => {
         let checkObj = checkRequiredFields(inputData);
@@ -282,26 +282,17 @@ let deleteDetailInforDoctor = (doctorId) => {
                 return;
             }
             else {
-                let doctorMarkDown = await db.MarkDown.findOne({
-                    where: { doctorId: doctorId },
-                    raw: false,
-                })
-
                 let doctorInfo = await db.Doctor_Infor.findOne({
                     where: { doctorId: doctorId },
                     raw: false,
                 })
                 if (doctorInfo) {
-                    await db.MarkDown.destroy({
-                        where: { doctorId: doctorId },
-                    })
-
-                    db.Doctor_Infor.destroy({
+                    await db.Doctor_Infor.destroy({
                         where: { doctorId: doctorId },
                     })
                     resolve({
                         errCode: 0,
-                        errMessage: `Save detail info doctor succeed!`
+                        errMessage: `Delete detail info doctor succeed!`
                     })
                 } else {
                     resolve({
@@ -424,13 +415,14 @@ let getScheduleByDate = (doctorId, date) => {
             if (!doctorId || !date) {
                 resolve({
                     errCode: 1,
-                    errMessage: 'Missing require parameter!'
-                })
+                    errMessage: 'Missing required parameter!'
+                });
             } else {
                 let dataSchedule = await db.Schedule.findAll({
                     where: {
                         doctorId: doctorId,
                         date: date,
+                        currentNumber: { [db.Sequelize.Op.lt]: db.Sequelize.col('maxNumber') } // Điều kiện so sánh
                     },
                     include: [
                         {
@@ -438,34 +430,35 @@ let getScheduleByDate = (doctorId, date) => {
                         },
                         {
                             model: db.User, as: 'doctorData', attributes: ['firstName', 'lastName']
-                        },
-                        // { model: db.Schedule, attributes: ['currentNumber', 'maxNumber', 'date', 'timeType'] }
+                        }
                     ],
                     raw: false,
                     nest: true
-                })
-                let positionData = db.User.findAll({
+                });
+
+                let positionData = await db.User.findAll({
                     where: { id: doctorId },
                     raw: true
-                })
-                if (!dataSchedule) {
-                    dataSchedule: [];
+                });
+
+                if (!dataSchedule || dataSchedule.length === 0) {
                     resolve({
                         errCode: 2,
-                        errMessage: 'Error data...'
-                    })
+                        errMessage: 'No available schedule!'
+                    });
+                } else {
+                    resolve({
+                        errCode: 0,
+                        data: dataSchedule,
+                        positionData: positionData
+                    });
                 }
-                resolve({
-                    errCode: 0,
-                    data: dataSchedule,
-                    positionData: positionData
-                })
             }
         } catch (e) {
             reject(e);
         }
-    })
-}
+    });
+};
 
 let getExtraInfoDoctorById = (doctorId) => {
     return new Promise(async (resolve, reject) => {
@@ -981,8 +974,9 @@ const postCancelAppointment = async (id) => {
                 resolve({
                     errCode: 1,
                     errMessage: 'Missing input parameter'
-                })
+                });
             }
+
             const appointment = await db.Appointment.findByPk(id);
 
             if (!appointment) {
@@ -994,18 +988,32 @@ const postCancelAppointment = async (id) => {
 
             if (appointment.statusId === 'S2') {
                 appointment.statusId = 'S5';
+
+                const schedule = await db.Schedule.findOne({
+                    where: {
+                        doctorId: appointment.doctorId,
+                        date: appointment.date,
+                        timeType: appointment.timeType
+                    }
+                });
+
+                if (schedule) {
+                    schedule.currentNumber = Math.max(schedule.currentNumber - 1, 0);
+                    await schedule.save();
+                }
+
+                await appointment.save();
+                resolve({
+                    errCode: 0,
+                    errMessage: 'Appointment status updated successfully',
+                    appointment
+                });
             } else {
                 return reject({
                     errCode: 3,
                     errMessage: 'Status update not allowed for this state'
                 });
             }
-            await appointment.save();
-            resolve({
-                errCode: 0,
-                errMessage: 'Appointment status updated successfully',
-                appointment
-            });
         } catch (e) {
             console.error('Error updating appointment:', e);
             reject(e);
@@ -1145,17 +1153,43 @@ let deleteDoctorComment = (id) => {
     })
 }
 
+cron.schedule('0 */6 * * *', async () => {
+    try {
+        const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000; // 12 giờ trước
+        // const fiveMinutesAgo  = Date.now() - 5 * 60 * 1000; // 5 phút trước
+        const expiredAppointments = await db.Appointment.findAll({
+            where: {
+                statusId: 'S1',
+                createdAt: {
+                    [Op.lt]: new Date(twelveHoursAgo),
+                },
+            },
+        });
+
+        // Hủy các lịch hẹn hết hạn
+        await Promise.all(
+            expiredAppointments.map((appointment) =>
+                appointment.update({ statusId: 'S5' })
+            )
+        );
+
+        console.log(`Đã hủy ${expiredAppointments.length} lịch hẹn hết hạn.`);
+    } catch (error) {
+        console.error('Lỗi khi hủy lịch hẹn:', error);
+    }
+});
+
 module.exports = {
-    getTopDoctorHome: getTopDoctorHome,
-    getAllDoctor: getAllDoctor,
-    saveDetailInforDoctor: saveDetailInforDoctor,
-    getDetailDoctorById: getDetailDoctorById,
-    bulkCreateSchedule: bulkCreateSchedule,
-    getScheduleByDate: getScheduleByDate,
-    getExtraInfoDoctorById: getExtraInfoDoctorById,
-    getProfileDoctorById: getProfileDoctorById,
-    deleteDoctorSchedule: deleteDoctorSchedule,
-    doctorSearch: doctorSearch,
+    getTopDoctorHome,
+    getAllDoctor,
+    saveDetailInforDoctor,
+    getDetailDoctorById,
+    bulkCreateSchedule,
+    getScheduleByDate,
+    getExtraInfoDoctorById,
+    getProfileDoctorById,
+    deleteDoctorSchedule,
+    doctorSearch,
     getTotalDoctor,
     createBusySchedule,
     getScheduleDoctorForWeek,
